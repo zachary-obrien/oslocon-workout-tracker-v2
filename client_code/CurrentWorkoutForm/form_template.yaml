@@ -2,9 +2,452 @@ components: []
 container:
   properties:
     html: |-
-      <center style="font-style:italic; color:#888; margin: 3em;">
-        (Insert your custom HTML here)
-      </center>
-      <div anvil-slot="default"></div>
+      <div id="app-root" anvil-name="app-root">
+        <style>
+          :root {
+            --bg:#0b0f14; --card:#141c26; --input:#1b2634; --border:#283548; --border-soft:#1f2a39;
+            --text:#f3f6fb; --muted:#97a5b7; --muted-2:#738195; --accent:#c96f2d; --accent-strong:#df7f37;
+            --accent-soft:rgba(201,111,45,.16); --accent-border:rgba(201,111,45,.28); --success:#1fa36a;
+            --warning:#d98d2b; --danger:#c65151; --neutral:#7d8796; --shadow:0 10px 30px rgba(0,0,0,.28); --radius:18px;
+          }
+          *{box-sizing:border-box}
+          #app-root{min-height:100vh;background:radial-gradient(circle at top, rgba(201,111,45,0.12), transparent 28%),linear-gradient(180deg,#0c1118 0%,#0a0f14 100%);color:var(--text);font-family:Arial,sans-serif}
+          .wrap{max-width:920px;margin:0 auto;padding:8px 8px 90px;position:relative}
+          .hidden{display:none!important}
+          .card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);padding:8px;margin-bottom:6px;box-shadow:var(--shadow)}
+          .hero-card{background:linear-gradient(180deg, rgba(201,111,45,.11), rgba(201,111,45,.03)), var(--card);border:1px solid rgba(201,111,45,.22)}
+          .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+          .row.space-between{justify-content:space-between}
+          .right{justify-content:flex-end}
+          .muted{color:var(--muted);font-size:13px;line-height:1.2}
+          .title{font-size:19px;line-height:1.08;font-weight:800;letter-spacing:-.02em;margin:0}
+          .summary-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+          .summary-stat{color:var(--muted);font-size:12px}
+          .pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;line-height:1}
+          .btn{border:1px solid transparent;border-radius:12px;padding:7px 12px;cursor:pointer;background:linear-gradient(180deg,var(--accent-strong),var(--accent));color:#fff;font-weight:800;font-size:14px;line-height:1.1;white-space:nowrap}
+          .btn.secondary{background:linear-gradient(180deg,#202b39,#1a2431);color:var(--text);border-color:var(--border)}
+          .btn.subtle{background:rgba(255,255,255,.04);color:var(--text);border-color:var(--border)}
+          .btn.small{padding:6px 9px;font-size:11px;border-radius:10px}
+          .icon-btn{width:30px;height:30px;padding:0;border-radius:999px;background:linear-gradient(180deg,#202b39,#1a2431);border-color:var(--border);display:inline-flex;align-items:center;justify-content:center}
+          .day-select, .select{border:1px solid var(--border);background:var(--input);color:var(--text);outline:none;border-radius:10px}
+          .day-select{min-width:92px;height:28px;padding:4px 9px;font-size:12px}
+          .select{height:26px;padding:0 6px;font-size:13px}
+          .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:visible;z-index:1}
+          .exercise-card.done{border-color:rgba(31,163,106,.34);background:linear-gradient(180deg, rgba(31,163,106,.10), rgba(31,163,106,.03)), var(--card)}
+          .exercise-card.partial{border-color:rgba(217,141,43,.34);background:linear-gradient(180deg, rgba(217,141,43,.10), rgba(217,141,43,.03)), var(--card)}
+          .exercise-card.skipped{border-color:rgba(198,81,81,.34);background:linear-gradient(180deg, rgba(198,81,81,.10), rgba(198,81,81,.03)), var(--card)}
+          .exercise-header{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(180deg, rgba(20,28,38,.96), rgba(20,28,38,.90));padding:4px 8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);position:relative;z-index:2}
+          .hero-title-wrap{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}.hero-day{font-size:12px;line-height:1.1}.exercise-title-wrap,.exercise-actions{display:flex;align-items:center;gap:8px;min-height:30px}.exercise-title-wrap{min-width:0;flex:1}.exercise-title-wrap .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .menu-wrap{position:relative;z-index:20}
+          .menu-panel{position:absolute;right:0;top:calc(100% + 6px);min-width:154px;background:linear-gradient(180deg, rgba(28,38,52,.98), rgba(21,29,40,.98));border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;z-index:2000}
+          .menu-panel.left{left:0;right:auto}
+          .menu-item{width:100%;background:transparent;color:var(--text);border:none;text-align:left;padding:8px 11px;font-size:13px;cursor:pointer;white-space:nowrap}.menu-item:hover{background:rgba(255,255,255,.05)}.menu-item.danger{color:#ffcfbf}
+          .set-list{display:flex;flex-direction:column;gap:0;padding:0 6px 6px;margin-top:4px}
+          .set-row{position:relative;display:grid;grid-template-columns:30px 1fr 24px;align-items:center;gap:6px;background:rgba(10,15,20,.28);border:1px solid var(--border);border-radius:0;padding:5px 8px;min-height:40px;margin-top:-1px;box-shadow:none}
+          .set-row:first-child{border-top-left-radius:10px;border-top-right-radius:10px;margin-top:0}.set-row:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px}.set-row.done{background:linear-gradient(180deg, rgba(31,163,106,.18), rgba(31,163,106,.08)), #16271e;border-color:rgba(31,163,106,.34)}
+          .set-controls{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}.set-unit{color:var(--muted);font-size:11px;line-height:1}
+          .check-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:transparent;color:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800}.check-btn.checked{background:var(--success);color:#fff;border-color:rgba(31,163,106,.7)}
+          .exercise-summary{padding:5px 8px 7px;color:var(--muted);font-size:13px;line-height:1.2}
+          .sticky-submit{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:100;width:min(920px, calc(100vw - 10px));padding:0 0 4px;background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 28%, rgba(10,15,20,1) 100%)}
+          .sticky-submit .card{padding:5px 5px 3px;margin-bottom:0}.full-width{width:100%}.credit{display:none}
+          .modal-overlay{position:fixed;inset:0;background:rgba(5,8,12,.76);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}.modal-card{width:100%;max-width:560px;max-height:90vh;overflow:auto;background:linear-gradient(180deg, rgba(24,33,45,.98), rgba(18,25,35,.98));border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px}
+          .modal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.modal-title{font-size:19px;font-weight:800}.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.modal-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.center-row{display:flex;justify-content:center;margin-top:8px}.share-block{border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:14px;padding:14px;margin-top:12px}.tile-row{display:flex;flex-wrap:wrap;gap:6px}.tile{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.10)}.tile.green{background:var(--success)}.tile.orange{background:var(--warning)}.tile.red{background:var(--danger)}.tile.gray{background:var(--neutral)}
+          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}}
+        </style>
+
+        <div class="wrap">
+          <div id="subtitle" class="muted"></div>
+
+          <div id="userPickerCard" class="card hidden">
+            <div class="title" style="margin-bottom:6px">Save your workouts</div>
+            <div id="registrationHelp" class="muted" style="margin-bottom:8px"></div>
+            <input id="registerName" class="select" type="text" placeholder="Your name" style="width:100%;height:36px;padding:6px 10px;margin-bottom:8px" />
+            <button class="btn" onclick="registerCurrentUser()">Continue</button>
+          </div>
+
+          <div id="workoutArea" class="hidden">
+            <div class="card hero-card">
+              <div class="row space-between" style="margin-bottom:0;align-items:flex-start;position:relative">
+                <div>
+                  <div class="title" id="who"></div>
+                  <div class="muted" id="dayHelper" style="margin-top:4px"></div>
+                </div>
+                <div class="row right" style="margin-bottom:0">
+                  <select id="daySelector" class="day-select" onchange="loadDisplayedDay(this.value)"></select>
+                  <div class="menu-wrap">
+                    <button class="btn secondary small icon-btn" onclick="toggleTopMenu(event)">⋯</button>
+                    <div class="menu-panel hidden" id="top-menu">
+                      <button class="menu-item" onclick="addExerciseSlot(); closeMenus()">Add exercise</button>
+                      <button class="menu-item" onclick="openProgressionModal(); closeMenus()">Progression settings</button>
+                      <button class="menu-item" onclick="openHistoryModal(); closeMenus()">Workout history</button>
+                      <button class="menu-item" onclick="addWorkoutDay(); closeMenus()">Add workout day</button>
+                      <button class="menu-item danger" id="remove-day-btn" onclick="removeCurrentWorkoutDay(); closeMenus()">Remove current day</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="summary-row" id="heroProgress"></div>
+            </div>
+
+            <div id="exerciseList"></div>
+
+            <div class="sticky-submit">
+              <div class="card">
+                <button class="btn full-width" onclick="attemptWorkoutComplete()">Workout Complete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="modalRoot" class="hidden"></div>
+
+        <script>
+          let appState = {activeEmail:'', registrationRequired:false, user:{}, workout:null, completionSummary:null};
+          let suppressAutoComplete = false;
+          let autoPrompted = false;
+
+          function py(method, ...args){
+            return anvil.call(document.getElementById('app-root'), method, ...args);
+          }
+
+          function bootstrapApp(payload){
+            appState = {
+              activeEmail: payload.activeEmail || '',
+              registrationRequired: !!payload.registrationRequired,
+              user: payload.user || {},
+              workout: payload.workout || null,
+              completionSummary: null
+            };
+            renderApp();
+            document.addEventListener('click', handleGlobalClick);
+          }
+
+          function updateWorkout(payload){
+            appState.workout = payload || null;
+            autoPrompted = false;
+            suppressAutoComplete = false;
+            renderApp();
+          }
+
+          function acceptSubmissionResult(result){
+            appState.workout = (result||{}).workout || null;
+            appState.completionSummary = (result||{}).completion_summary || null;
+            autoPrompted = false;
+            suppressAutoComplete = false;
+            renderApp();
+            openCompletionModal();
+          }
+
+          function renderApp(){
+            const reg = appState.registrationRequired;
+            document.getElementById('userPickerCard').classList.toggle('hidden', !reg);
+            document.getElementById('workoutArea').classList.toggle('hidden', reg);
+            if(reg){
+              document.getElementById('subtitle').textContent = 'Complete setup';
+              document.getElementById('registrationHelp').textContent = appState.activeEmail ? `Saving as ${appState.activeEmail}. Enter your name to continue.` : 'Enter your name to continue.';
+              return;
+            }
+            const displayName = appState.workout?.resolvedUser?.display_name || appState.user?.display_name || 'User';
+            document.getElementById('subtitle').textContent = `Logged in as ${displayName}${appState.activeEmail ? ' • ' + appState.activeEmail : ''}`;
+            document.getElementById('who').textContent = displayName;
+            renderDaySelector();
+            renderDayHelper();
+            renderHeroProgress();
+            renderExercises();
+          }
+
+          function renderDaySelector(){
+            const select = document.getElementById('daySelector');
+            const workout = appState.workout || {};
+            const currentDay = workout.current_day;
+            select.innerHTML = (workout.day_options || []).map(d => `<option value="${escapeHtml(d.day_code)}" ${d.day_code===currentDay?'selected':''}>Day ${escapeHtml(d.day_code)}</option>`).join('');
+            document.getElementById('remove-day-btn').style.display = workout.can_remove_current_day ? 'block' : 'none';
+          }
+
+          function renderDayHelper(){
+            const w = appState.workout || {};
+            const current = w.current_day || '';
+            const next = w.next_scheduled_day || current;
+            document.getElementById('dayHelper').textContent = current===next ? `Displayed Workout: Day ${current}` : `Displayed Workout: Day ${current} • Next scheduled: Day ${next}`;
+          }
+
+          function renderHeroProgress(){
+            const hero = document.getElementById('heroProgress');
+            const exs = (appState.workout?.exercises || []).filter(e => !e.is_unassigned);
+            const total = exs.length;
+            const completed = exs.filter(e => e.status==='completed').length;
+            const skipped = exs.filter(e => e.status==='skipped').length;
+            const remaining = total - completed - skipped;
+            const rule = appState.workout?.progression_settings?.progress_every_n_qualifying_workouts || 3;
+            const parts = [`${completed} / ${total} complete`];
+            if(skipped) parts.push(`${skipped} skipped`);
+            if(remaining) parts.push(`${remaining} remaining`);
+            parts.push(`Progress after ${rule} qualifying workouts`);
+            hero.innerHTML = parts.map((p,i)=>`${i?'<span class="summary-stat">•</span>':''}<span class="summary-stat">${escapeHtml(p)}</span>`).join(' ');
+          }
+
+          function renderExercises(){
+            const list = document.getElementById('exerciseList');
+            list.innerHTML = '';
+            const exercises = appState.workout?.exercises || [];
+            if(!exercises.length){
+              list.innerHTML = `<div class="card"><div class="muted">No exercises on this day yet. Tap Add exercise to create a new slot.</div></div>`;
+              return;
+            }
+            exercises.forEach((ex, idx) => {
+              const card = document.createElement('div');
+              let klass = 'exercise-card';
+              if(ex.status==='completed') klass += ' done';
+              else if(ex.status==='skipped') klass += ' skipped';
+              else if((ex.sets||[]).some(s=>s.performed) && (ex.sets||[]).some(s=>!s.performed)) klass += ' partial';
+              const collapsed = !ex.is_unassigned && (ex.status==='completed' || ex.status==='skipped') && ex.collapsed !== false;
+              card.className = klass;
+              card.innerHTML = collapsed ? renderCollapsedExercise(ex, idx) : (ex.is_unassigned ? renderUnassignedExercise(ex, idx) : renderExpandedExercise(ex, idx));
+              list.appendChild(card);
+            });
+          }
+
+          function renderCollapsedExercise(ex, idx){
+            return `<div class="exercise-header">
+              <div class="exercise-title-wrap"><div class="title">${escapeHtml(ex.exercise_label)}</div></div>
+              <div class="exercise-actions"><span class="pill">${escapeHtml((ex.muscle_group || 'Unassigned'))}</span><button class="btn secondary small" onclick="editCollapsed(${idx})">Edit</button></div>
+            </div>
+            <div class="exercise-summary">${escapeHtml(collapsedSummary(ex))}</div>`;
+          }
+
+          function renderUnassignedExercise(ex, idx){
+            return `<div class="exercise-header">
+              <div class="exercise-title-wrap"><div class="title">Select exercise</div></div>
+              <div class="exercise-actions"><span class="pill">Empty Slot</span>${renderExerciseMenuButton(idx,false)}</div>
+            </div>
+            <div class="exercise-summary">This slot is empty. Choose an existing exercise.</div>`;
+          }
+
+          function renderExpandedExercise(ex, idx){
+            return `<div class="exercise-header">
+              <div class="exercise-title-wrap"><div class="title">${escapeHtml(ex.exercise_label)}</div></div>
+              <div class="exercise-actions"><span class="pill">${escapeHtml(ex.muscle_group || 'Unassigned')}</span>${renderExerciseMenuButton(idx,true)}</div>
+            </div>
+            <div class="set-list">${(ex.sets||[]).map((s,i)=>renderSetRow(ex, idx, s, i)).join('')}</div>`;
+          }
+
+          function renderExerciseMenuButton(idx, assigned){
+            const ex = appState.workout.exercises[idx];
+            return `<div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleExerciseMenu(event,${idx})">⋯</button>
+              <div class="menu-panel hidden" id="exercise-menu-${idx}">
+                ${assigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : ''}
+                <button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>
+                <button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>
+                <button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>
+                <button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>
+                ${assigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : ''}
+              </div></div>`;
+          }
+
+          function renderSetRow(ex, exIdx, setObj, setIdx){
+            const weightOptions = ex.uses_bodyweight ? `<option value="BW" ${['BW','',null].includes(setObj.weight)?'selected':''}>BW</option>` : buildWeightOptions(setObj.weight);
+            const repOptions = buildRepOptions(setObj.reps);
+            return `<div class="set-row ${setObj.performed?'done':''}">
+              <div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleSetMenu(event,${exIdx},${setIdx})">⋯</button>
+                <div class="menu-panel left hidden" id="set-menu-${exIdx}-${setIdx}">
+                  <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
+                  <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>
+                </div></div>
+              <div class="set-controls">
+                <select class="select" id="w-${exIdx}-${setIdx}" onchange="setValueChanged(${exIdx},${setIdx})">${weightOptions}</select>
+                ${ex.uses_bodyweight ? '' : '<span class="set-unit">lb</span>'}
+                <select class="select" id="r-${exIdx}-${setIdx}" onchange="setValueChanged(${exIdx},${setIdx})">${repOptions}</select>
+                <span class="set-unit">reps</span>
+              </div>
+              <button class="check-btn ${setObj.performed?'checked':''}" onclick="toggleSetDone(${exIdx},${setIdx})">${setObj.performed?'✓':''}</button>
+            </div>`;
+          }
+
+          function buildWeightOptions(selected){
+            let out='';
+            for(let x=5;x<=300;x+=2.5){
+              const label = Number.isInteger(x)?String(x):String(x);
+              const sel = Number(selected)===x ? 'selected' : '';
+              out += `<option value="${x}" ${sel}>${label}</option>`;
+            }
+            return out;
+          }
+
+          function buildRepOptions(selected){
+            let out='';
+            for(let i=3;i<=30;i++) out += `<option value="${i}" ${Number(selected)===i?'selected':''}>${i}</option>`;
+            return out;
+          }
+
+          function collapsedSummary(ex){
+            if(ex.status==='skipped') return 'Skipped for this workout';
+            const sets = ex.sets || [];
+            if(!sets.length) return 'Completed';
+            const checked = sets.filter(s=>s.performed).length;
+            const avg = Math.round(sets.reduce((a,s)=>a+Number(s.reps||0),0)/Math.max(sets.length,1));
+            const first = sets[0]?.weight;
+            const weightText = ex.uses_bodyweight ? 'BW' : `${first} lb`;
+            return `Completed · ${checked}/${sets.length} sets checked · ${weightText} · avg ${avg} reps`;
+          }
+
+          async function registerCurrentUser(){
+            const name = document.getElementById('registerName').value.trim();
+            if(!name) return;
+            const data = await py('py_register_current_user', name);
+            appState.registrationRequired = false;
+            appState.workout = data.workout || data;
+            appState.user = appState.workout?.resolvedUser || appState.user;
+            renderApp();
+          }
+
+          async function loadDisplayedDay(dayCode){ if(dayCode){ const payload = await py('py_load_workout_day', dayCode); appState.workout = payload; renderApp(); } }
+          async function addExerciseSlot(){ const payload = await py('py_add_exercise_slot'); appState.workout = payload; renderApp(); }
+          async function addWorkoutDay(){ const payload = await py('py_add_workout_day'); appState.workout = payload; renderApp(); }
+          async function removeCurrentWorkoutDay(){ const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); }
+          async function moveExercise(idx, dir){ const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); }
+          async function removeExercise(idx){ const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); }
+          function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); }
+          function editCollapsed(idx){ appState.workout.exercises[idx].collapsed=false; appState.workout.exercises[idx].status='active'; suppressAutoComplete = true; renderApp(); }
+
+          function setValueChanged(exIdx,setIdx){
+            const ex = appState.workout.exercises[exIdx];
+            ex.sets[setIdx].weight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
+            ex.sets[setIdx].reps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
+            for(let i=setIdx+1;i<ex.sets.length;i++){
+              if(ex.sets[i].performed) continue;
+              ex.sets[i].weight = ex.sets[setIdx].weight;
+              ex.sets[i].reps = ex.sets[setIdx].reps;
+            }
+          }
+
+          function toggleSetDone(exIdx,setIdx){
+            const ex = appState.workout.exercises[exIdx];
+            const s = ex.sets[setIdx];
+            s.performed = !s.performed;
+            if(ex.sets.every(x=>x.performed)){ ex.status='completed'; ex.collapsed=true; }
+            else if(ex.status !== 'skipped'){ ex.status='active'; }
+            renderApp();
+            if(!suppressAutoComplete) maybeAutoComplete();
+          }
+
+          function addSetBelow(exIdx,setIdx){
+            const ex = appState.workout.exercises[exIdx];
+            const src = {...ex.sets[setIdx], performed:false, auto_completed:false};
+            ex.sets.splice(setIdx+1,0,src);
+            renderApp();
+          }
+          function deleteSet(exIdx,setIdx){
+            const ex = appState.workout.exercises[exIdx];
+            if(ex.sets.length>1) ex.sets.splice(setIdx,1); else { ex.sets[0].performed=false; ex.sets[0].auto_completed=false; }
+            renderApp();
+          }
+
+          function toggleTopMenu(e){ e.stopPropagation(); const el=document.getElementById('top-menu'); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
+          function toggleExerciseMenu(e,idx){ e.stopPropagation(); const el=document.getElementById(`exercise-menu-${idx}`); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
+          function toggleSetMenu(e,exIdx,setIdx){ e.stopPropagation(); const el=document.getElementById(`set-menu-${exIdx}-${setIdx}`); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
+          function closeMenus(){ document.querySelectorAll('.menu-panel').forEach(el=>el.classList.add('hidden')); }
+          function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap')) closeMenus(); }
+
+          async function openChangeExercise(idx){
+            const current = appState.workout.exercises[idx];
+            showModal(`
+              <div class="modal-card">
+                <div class="modal-head"><div class="modal-title">Change Exercise</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div>
+                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="searchExercises(${idx})" />
+                <div id="exerciseSearchResults" style="margin-top:10px"></div>
+              </div>`);
+            window.currentExerciseSlotIndex = idx;
+            await searchExercises(idx, current.exercise_label || '');
+          }
+
+          async function searchExercises(idx, initial){
+            const query = typeof initial === 'string' && initial ? initial : document.getElementById('exerciseSearch').value;
+            const results = await py('py_search_exercises', query || '');
+            const host = document.getElementById('exerciseSearchResults');
+            host.innerHTML = (results || []).map(r => `<div class="card" style="padding:8px;cursor:pointer" onclick="pickExercise(${idx}, ${r.id})"><div style="font-weight:700">${escapeHtml(r.name)}</div><div class="muted">${escapeHtml(r.muscle_group || '')}</div></div>`).join('');
+          }
+
+          async function pickExercise(idx, exerciseId){
+            const slot = appState.workout.exercises[idx].slot_number;
+            const payload = await py('py_assign_slot_exercise', slot, exerciseId);
+            appState.workout = payload;
+            closeModal();
+            renderApp();
+          }
+
+          async function openHistoryModal(){
+            const items = await py('py_get_recent_history');
+            showHistory(items, 'Workout History');
+          }
+          async function openExerciseHistory(idx){
+            const ex = appState.workout.exercises[idx];
+            const items = await py('py_get_exercise_history', ex.exercise_id);
+            showHistory(items, ex.exercise_label || 'Exercise History');
+          }
+          function showHistory(items, title){
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div>${(items||[]).map(item=>`<div class="card" style="padding:8px"><div style="font-weight:700">${escapeHtml(item.completed_at || item.date || item.day_code || '')}</div><div class="muted">${escapeHtml(item.share_text || item.bucket || '')}</div></div>`).join('')}</div></div>`);
+          }
+
+          function openProgressionModal(){
+            const value = appState.workout?.progression_settings?.progress_every_n_qualifying_workouts || 3;
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Progression Settings</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">Progress after this many qualifying workouts.</div><div style="margin-top:10px"><select id="progressionSetting" class="select">${[1,2,3,4,5,6].map(v=>`<option value="${v}" ${v===value?'selected':''}>${v}</option>`).join('')}</select></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Close</button><button class="btn" onclick="saveProgressionSetting()">Save</button></div></div>`);
+          }
+          async function saveProgressionSetting(){ const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); }
+
+          function assignedExercises(){ return (appState.workout?.exercises || []).filter(e => !e.is_unassigned && e.exercise_id); }
+          function allDoneOrSkipped(){ const arr=assignedExercises(); return arr.length && arr.every(ex => ex.status==='skipped' || (ex.sets||[]).every(s=>s.performed)); }
+          function hasSkips(){ return assignedExercises().some(ex => ex.status==='skipped'); }
+          function maybeAutoComplete(){ if(autoPrompted) return; if(allDoneOrSkipped()){ autoPrompted=true; showAutoCompleteModal(); } }
+
+          function attemptWorkoutComplete(){ suppressAutoComplete=false; if(allDoneOrSkipped()){ submitWorkout(); return; } showUnfinishedModal(false); }
+          function showAutoCompleteModal(){ showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Workout complete?</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">All sets finished${hasSkips() ? ' or skipped' : ''}. Want to log the workout?</div><div class="modal-actions"><button class="btn" onclick="closeModal(); submitWorkout()">Complete Workout</button></div></div>`); }
+          function showUnfinishedModal(setsAutoCompleted){
+            const title = setsAutoCompleted ? 'Ready to complete' : 'Some sets are unfinished';
+            const body = setsAutoCompleted ? 'Remaining sets auto-completed.' : 'You can go back, complete anyway, or finish the remaining sets automatically.';
+            const split = setsAutoCompleted ? `<div class="modal-split"><button class="btn secondary" onclick="closeModal()">Go Back</button><button class="btn subtle" onclick="closeModal(); submitWorkout()">Complete Workout</button></div>` : `<div class="modal-split"><button class="btn secondary" onclick="closeModal()">Go Back</button><button class="btn subtle" onclick="closeModal(); submitWorkout()">Complete Anyway</button></div><div class="center-row"><button class="btn subtle" onclick="finishRemainingSets()">Finish Remaining Sets</button></div>`;
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(body)}</div>${split}</div>`);
+          }
+          function finishRemainingSets(){
+            (appState.workout?.exercises || []).forEach(ex => {
+              if(ex.is_unassigned || ex.status==='skipped') return;
+              (ex.sets||[]).forEach(s => { if(!s.performed){ s.performed=true; s.auto_completed=true; }});
+              ex.status='completed'; ex.collapsed=true;
+            });
+            autoPrompted = true; suppressAutoComplete = true; renderApp(); showUnfinishedModal(true);
+          }
+
+          async function submitWorkout(){
+            closeModal();
+            const payload = { day_code: appState.workout.current_day, exercises: [] };
+            (appState.workout.exercises || []).forEach(ex => {
+              if(ex.is_unassigned || !ex.exercise_id) return;
+              payload.exercises.push({
+                slot_number: ex.slot_number,
+                exercise_id: ex.exercise_id,
+                uses_bodyweight: ex.uses_bodyweight,
+                recommended_weight: ex.recommended_weight,
+                recommended_reps: ex.recommended_reps,
+                status: ex.status,
+                sets: ex.sets || []
+              });
+            });
+            await py('py_submit_workout', payload);
+          }
+
+          function openCompletionModal(){
+            const s = appState.completionSummary || {};
+            const tiles = (s.tile_states || []).map(t => `<span class="tile ${escapeHtml(t)}"></span>`).join('');
+            const share = escapeHtml(s.share_text || '');
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div class="muted" style="margin-bottom:8px">${escapeHtml(s.date || '')}</div><div class="tile-row">${tiles}</div><pre style="white-space:pre-wrap;margin:12px 0 0;font-family:inherit">${share}</pre><div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div></div>`);
+          }
+          function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
+
+          function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
+          function closeModal(){ const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
+          function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
+
+          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        </script>
+      </div>
   type: HtmlTemplate
 is_package: true

@@ -1,7 +1,6 @@
 from ._anvil_designer import CurrentWorkoutFormTemplate
 from anvil import *
 import anvil.server
-import json
 
 
 class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
@@ -9,12 +8,21 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
     self.init_components(**properties)
     self.bootstrap_payload = bootstrap_payload or {}
     self.current_day = ((self.bootstrap_payload.get('workout') or {}).get('current_day'))
+    self._js_ready = False
+    self.set_event_handler('show', self.form_show)
+
+  def form_show(self, **event_args):
+    if self._js_ready:
+      return
+    self._js_ready = True
+    # Custom HTML JS is only available after the form has been added to the DOM.
     self.call_js('bootstrapApp', self.bootstrap_payload)
 
     # ---------- JS bridge helpers ----------
   def _update_workout(self, payload):
     self.current_day = (payload or {}).get('current_day')
-    self.call_js('updateWorkout', payload)
+    if self._js_ready:
+      self.call_js('updateWorkout', payload)
     return payload
 
   def py_register_current_user(self, name):
@@ -73,5 +81,6 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
     result = anvil.server.call('submit_workout', payload)
     workout = (result or {}).get('workout') or {}
     self.current_day = workout.get('current_day')
-    self.call_js('acceptSubmissionResult', result)
+    if self._js_ready:
+      self.call_js('acceptSubmissionResult', result)
     return result
