@@ -1,0 +1,325 @@
+allow_embedding: false
+correct_dependency_ids: {}
+db_schema:
+  completion_messages:
+    client: none
+    columns: []
+    server: full
+    title: completion_messages
+  exercise_images:
+    client: none
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exercise
+      target: exercises
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: image
+      type: media
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: sort_order
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: label
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: source_filename
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    server: full
+    title: exercise_images
+  exercises:
+    client: none
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: external_id
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: source
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: source_version
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: name
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: normalized_name
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: category
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: force
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: level
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: mechanic
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: equipment
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: primary_muscles
+      type: simpleObject
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: secondary_muscles
+      type: simpleObject
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: instructions
+      type: simpleObject
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: group_size
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: uses_bodyweight_default
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: is_active
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_by_user
+      target: users
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: updated_at
+      type: datetime
+    server: full
+    title: exercises
+  subscriptions:
+    client: none
+    columns: []
+    server: full
+    title: subscriptions
+  user_exercise_state:
+    client: none
+    columns: []
+    server: full
+    title: user_exercise_state
+  users:
+    client: none
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: email
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: enabled
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: last_login
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: password_hash
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: n_password_failures
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: confirmed_email
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: display_name
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: progress_every_n_qualifying_workouts
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: timezone
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: role
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: is_admin
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: onboarding_complete
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_via
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: stripe_customer_id
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: plan_tier
+      type: string
+    - admin_ui: {order: 15, width: 200}
+      client_hidden: false
+      name: signed_up
+      type: datetime
+    - admin_ui: {order: 16, width: 200}
+      client_hidden: false
+      name: remembered_logins
+      type: simpleObject
+    server: full
+    title: Users
+  workout_days:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
+    - admin_ui: {order: 1, width: 200}
+      client_hidden: false
+      name: day_code
+      type: string
+    - admin_ui: {order: 2, width: 200}
+      client_hidden: false
+      name: display_order
+      type: number
+    - admin_ui: {order: 3, width: 200}
+      client_hidden: false
+      name: is_active
+      type: bool
+    - admin_ui: {order: 4, width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    - admin_ui: {order: 5, width: 200}
+      client_hidden: false
+      name: updated_at
+      type: datetime
+    - admin_ui: {order: 6, width: 200}
+      client_hidden: false
+      name: archived_at
+      type: datetime
+    server: full
+    title: workout_days
+  workout_session_exercises:
+    client: none
+    columns: []
+    server: full
+    title: workout_session_exercises
+  workout_session_sets:
+    client: none
+    columns: []
+    server: full
+    title: workout_session_sets
+  workout_sessions:
+    client: none
+    columns: []
+    server: full
+    title: workout_sessions
+  workout_slots:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
+    - admin_ui: {order: 1, width: 200}
+      client_hidden: false
+      name: workout_day
+      target: workout_days
+      type: link_single
+    - admin_ui: {order: 2, width: 200}
+      client_hidden: false
+      name: slot_number
+      type: number
+    - admin_ui: {order: 3, width: 200}
+      client_hidden: false
+      name: display_order
+      type: number
+    - admin_ui: {order: 4, width: 200}
+      client_hidden: false
+      name: exercise
+      target: exercises
+      type: link_single
+    - admin_ui: {order: 5, width: 200}
+      client_hidden: false
+      name: is_active
+      type: bool
+    - admin_ui: {order: 6, width: 200}
+      client_hidden: false
+      name: base_target_weight
+      type: number
+    - admin_ui: {order: 7, width: 200}
+      client_hidden: false
+      name: base_target_reps
+      type: number
+    - admin_ui: {order: 8, width: 200}
+      client_hidden: false
+      name: default_sets
+      type: number
+    - admin_ui: {order: 9, width: 200}
+      client_hidden: false
+      name: uses_bodyweight
+      type: bool
+    server: full
+    title: workout_slots
+dependencies: []
+metadata: {logo_img: 'asset:512x512OsloconWorkout.png', title: Oslocon Workout Tracker}
+name: Clone of Oslocon Workout Tracker
+package_name: Oslocon_Workout_Tracker
+renamed: true
+runtime_options:
+  client_version: '3'
+  legacy_features: {bootstrap3: true, class_names: true}
+  server_spec: {base: python310-standard}
+  version: 3
+services:
+- client_config: {enable_v2: false}
+  server_config: {}
+  source: /runtime/services/tables.yml
+- client_config: {allow_remember_me: true, allow_signup: true, confirm_email: true, enable_automatically: true, remember_me_days: 30, use_email: false, use_google: true}
+  server_config: {user_table: users}
+  source: /runtime/services/anvil/users.yml
+- client_config: {}
+  server_config: {}
+  source: /runtime/services/google.yml
+- client_config: {}
+  server_config: {}
+  source: /runtime/services/anvil/files.yml
+startup: {module: Form1, type: form}
+startup_form: null
