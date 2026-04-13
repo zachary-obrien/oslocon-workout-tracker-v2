@@ -300,7 +300,7 @@ db_schema:
     title: workout_slots
 dependencies: []
 metadata: {logo_img: 'asset:512x512OsloconWorkout.png', title: Oslocon Workout Tracker}
-name: Clone of Oslocon Workout Tracker
+name: Oslocon Workout Tracker v2
 package_name: Oslocon_Workout_Tracker
 renamed: true
 runtime_options:

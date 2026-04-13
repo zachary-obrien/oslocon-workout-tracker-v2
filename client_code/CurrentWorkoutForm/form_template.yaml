@@ -1,7 +1,7 @@
 components: []
 container:
   properties:
-    html: |-
+    html: |
       <div id="app-root" anvil-name="app-root">
         <style>
           :root {
@@ -32,27 +32,39 @@ container:
           .day-select, .select{border:1px solid var(--border);background:var(--input);color:var(--text);outline:none;border-radius:10px}
           .day-select{min-width:92px;height:28px;padding:4px 9px;font-size:12px}
           .select{height:26px;padding:0 6px;font-size:13px}
-          .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:visible;z-index:1}
+          .hero-topline{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
+          .hero-name{flex:0 1 auto;min-width:0;max-width:42vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .hero-day{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.1}
+          .hero-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+          .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:visible;isolation:isolate}
           .exercise-card.done{border-color:rgba(31,163,106,.34);background:linear-gradient(180deg, rgba(31,163,106,.10), rgba(31,163,106,.03)), var(--card)}
           .exercise-card.partial{border-color:rgba(217,141,43,.34);background:linear-gradient(180deg, rgba(217,141,43,.10), rgba(217,141,43,.03)), var(--card)}
           .exercise-card.skipped{border-color:rgba(198,81,81,.34);background:linear-gradient(180deg, rgba(198,81,81,.10), rgba(198,81,81,.03)), var(--card)}
-          .exercise-header{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(180deg, rgba(20,28,38,.96), rgba(20,28,38,.90));padding:4px 8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);position:relative;z-index:2}
-          .hero-title-wrap{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}.hero-day{font-size:12px;line-height:1.1}.exercise-title-wrap,.exercise-actions{display:flex;align-items:center;gap:8px;min-height:30px}.exercise-title-wrap{min-width:0;flex:1}.exercise-title-wrap .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-          .menu-wrap{position:relative;z-index:20}
+          .exercise-header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(180deg, rgba(20,28,38,.96), rgba(20,28,38,.90));padding:4px 8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius)}
+          .exercise-title-wrap,.exercise-actions{display:flex;align-items:center;gap:8px;min-height:30px}.exercise-title-wrap{min-width:0;flex:1}.exercise-title-wrap .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .menu-wrap{position:relative;z-index:3}
           .menu-panel{position:absolute;right:0;top:calc(100% + 6px);min-width:154px;background:linear-gradient(180deg, rgba(28,38,52,.98), rgba(21,29,40,.98));border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;z-index:2000}
           .menu-panel.left{left:0;right:auto}
           .menu-item{width:100%;background:transparent;color:var(--text);border:none;text-align:left;padding:8px 11px;font-size:13px;cursor:pointer;white-space:nowrap}.menu-item:hover{background:rgba(255,255,255,.05)}.menu-item.danger{color:#ffcfbf}
-          .set-list{display:flex;flex-direction:column;gap:0;padding:0 6px 6px;margin-top:4px}
-          .set-row{position:relative;display:grid;grid-template-columns:30px 1fr 24px;align-items:center;gap:6px;background:rgba(10,15,20,.28);border:1px solid var(--border);border-radius:0;padding:5px 8px;min-height:40px;margin-top:-1px;box-shadow:none}
-          .set-row:first-child{border-top-left-radius:10px;border-top-right-radius:10px;margin-top:0}.set-row:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px}.set-row.done{background:linear-gradient(180deg, rgba(31,163,106,.18), rgba(31,163,106,.08)), #16271e;border-color:rgba(31,163,106,.34)}
-          .set-controls{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}.set-unit{color:var(--muted);font-size:11px;line-height:1}
+          .set-list{position:relative;display:flex;flex-direction:column;gap:0;padding:0 6px 6px;overflow:visible}
+          .set-row{position:relative;display:grid;grid-template-columns:30px 1fr 24px;align-items:center;gap:4px;background:rgba(255,255,255,.01);border:1px solid var(--border-soft);border-radius:0;padding:2px 6px;min-height:32px;margin-top:-1px;box-shadow:none}
+          .set-row:first-child{margin-top:0;border-top-left-radius:10px;border-top-right-radius:10px}
+          .set-row:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px}
+          .set-row.done{background:linear-gradient(180deg, rgba(31,163,106,.16), rgba(31,163,106,.07));border-color:rgba(31,163,106,.34)}
+          .set-controls{display:flex;align-items:center;gap:2px}.set-unit{color:var(--muted);font-size:11px;line-height:1}
           .check-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:transparent;color:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800}.check-btn.checked{background:var(--success);color:#fff;border-color:rgba(31,163,106,.7)}
           .exercise-summary{padding:5px 8px 7px;color:var(--muted);font-size:13px;line-height:1.2}
           .sticky-submit{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:100;width:min(920px, calc(100vw - 10px));padding:0 0 4px;background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 28%, rgba(10,15,20,1) 100%)}
           .sticky-submit .card{padding:5px 5px 3px;margin-bottom:0}.full-width{width:100%}.credit{display:none}
+          .menu-portal{position:fixed;inset:0;z-index:5000;pointer-events:none}
+          .menu-portal .menu-panel{position:absolute;pointer-events:auto;min-width:154px}
           .modal-overlay{position:fixed;inset:0;background:rgba(5,8,12,.76);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}.modal-card{width:100%;max-width:560px;max-height:90vh;overflow:auto;background:linear-gradient(180deg, rgba(24,33,45,.98), rgba(18,25,35,.98));border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px}
           .modal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.modal-title{font-size:19px;font-weight:800}.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.modal-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.center-row{display:flex;justify-content:center;margin-top:8px}.share-block{border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:14px;padding:14px;margin-top:12px}.tile-row{display:flex;flex-wrap:wrap;gap:6px}.tile{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.10)}.tile.green{background:var(--success)}.tile.orange{background:var(--warning)}.tile.red{background:var(--danger)}.tile.gray{background:var(--neutral)}
-          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}}
+          .history-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+          .history-card-title{font-weight:700}
+          .history-card-date{margin-top:4px}
+          .history-share{margin-top:8px;white-space:pre-wrap;line-height:1.25}
+          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}.hero-name{max-width:36vw}.hero-day{font-size:11px}.hero-actions{gap:6px}}
         </style>
 
         <div class="wrap">
@@ -67,12 +79,10 @@ container:
 
           <div id="workoutArea" class="hidden">
             <div class="card hero-card">
-              <div class="row space-between" style="margin-bottom:0;align-items:flex-start;position:relative">
-                <div>
-                  <div class="title" id="who"></div>
-                  <div class="muted" id="dayHelper" style="margin-top:4px"></div>
-                </div>
-                <div class="row right" style="margin-bottom:0">
+              <div class="hero-topline" style="margin-bottom:0;position:relative">
+                <div class="title hero-name" id="who"></div>
+                <div class="muted hero-day" id="dayHelper"></div>
+                <div class="hero-actions">
                   <select id="daySelector" class="day-select" onchange="loadDisplayedDay(this.value)"></select>
                   <div class="menu-wrap">
                     <button class="btn secondary small icon-btn" onclick="toggleTopMenu(event)">⋯</button>
@@ -100,6 +110,7 @@ container:
         </div>
 
         <div id="modalRoot" class="hidden"></div>
+        <div id="menuPortal" class="menu-portal hidden" data-menu-type=""></div>
 
         <script>
           let appState = {activeEmail:'', registrationRequired:false, user:{}, workout:null, completionSummary:null};
@@ -108,6 +119,18 @@ container:
 
           function py(method, ...args){
             return anvil.call(document.getElementById('app-root'), method, ...args);
+          }
+
+          function titleCaseWords(value){
+            return String(value || '').toLowerCase().replace(/\b([a-z])/g, (_, ch) => ch.toUpperCase());
+          }
+
+          function formatLocalDateTime(value){
+            if (!value) return '';
+            if (typeof value === 'string' && /\d{1,2}-\d{1,2}-\d{4}/.test(value)) return value;
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            return new Intl.DateTimeFormat([], {month:'2-digit', day:'2-digit', year:'numeric', hour:'numeric', minute:'2-digit'}).format(date);
           }
 
           function bootstrapApp(payload){
@@ -168,7 +191,7 @@ container:
             const w = appState.workout || {};
             const current = w.current_day || '';
             const next = w.next_scheduled_day || current;
-            document.getElementById('dayHelper').textContent = current===next ? `Displayed Workout: Day ${current}` : `Displayed Workout: Day ${current} • Next scheduled: Day ${next}`;
+            document.getElementById('dayHelper').textContent = current===next ? `Day ${current}` : `Day ${current} · Next ${next}`;
           }
 
           function renderHeroProgress(){
@@ -210,7 +233,7 @@ container:
           function renderCollapsedExercise(ex, idx){
             return `<div class="exercise-header">
               <div class="exercise-title-wrap"><div class="title">${escapeHtml(ex.exercise_label)}</div></div>
-              <div class="exercise-actions"><span class="pill">${escapeHtml((ex.muscle_group || 'Unassigned'))}</span><button class="btn secondary small" onclick="editCollapsed(${idx})">Edit</button></div>
+              <div class="exercise-actions"><span class="pill">${escapeHtml(titleCaseWords(ex.muscle_group || 'Unassigned'))}</span><button class="btn secondary small" onclick="editCollapsed(${idx})">Edit</button></div>
             </div>
             <div class="exercise-summary">${escapeHtml(collapsedSummary(ex))}</div>`;
           }
@@ -226,36 +249,23 @@ container:
           function renderExpandedExercise(ex, idx){
             return `<div class="exercise-header">
               <div class="exercise-title-wrap"><div class="title">${escapeHtml(ex.exercise_label)}</div></div>
-              <div class="exercise-actions"><span class="pill">${escapeHtml(ex.muscle_group || 'Unassigned')}</span>${renderExerciseMenuButton(idx,true)}</div>
+              <div class="exercise-actions"><span class="pill">${escapeHtml(titleCaseWords(ex.muscle_group || 'Unassigned'))}</span>${renderExerciseMenuButton(idx,true)}</div>
             </div>
             <div class="set-list">${(ex.sets||[]).map((s,i)=>renderSetRow(ex, idx, s, i)).join('')}</div>`;
           }
 
           function renderExerciseMenuButton(idx, assigned){
-            const ex = appState.workout.exercises[idx];
-            return `<div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleExerciseMenu(event,${idx})">⋯</button>
-              <div class="menu-panel hidden" id="exercise-menu-${idx}">
-                ${assigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : ''}
-                <button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>
-                <button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>
-                <button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>
-                <button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>
-                ${assigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : ''}
-              </div></div>`;
+            return `<div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleExerciseMenu(event,${idx})">⋯</button></div>`;
           }
 
           function renderSetRow(ex, exIdx, setObj, setIdx){
             const weightOptions = ex.uses_bodyweight ? `<option value="BW" ${['BW','',null].includes(setObj.weight)?'selected':''}>BW</option>` : buildWeightOptions(setObj.weight);
             const repOptions = buildRepOptions(setObj.reps);
             return `<div class="set-row ${setObj.performed?'done':''}">
-              <div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleSetMenu(event,${exIdx},${setIdx})">⋯</button>
-                <div class="menu-panel left hidden" id="set-menu-${exIdx}-${setIdx}">
-                  <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
-                  <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>
-                </div></div>
+              <div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleSetMenu(event,${exIdx},${setIdx})">⋯</button></div>
               <div class="set-controls">
                 <select class="select" id="w-${exIdx}-${setIdx}" onchange="setValueChanged(${exIdx},${setIdx})">${weightOptions}</select>
-                ${ex.uses_bodyweight ? '' : '<span class="set-unit">lb</span>'}
+                ${ex.uses_bodyweight ? "" : "<span class=\"set-unit\">lb</span>"}
                 <select class="select" id="r-${exIdx}-${setIdx}" onchange="setValueChanged(${exIdx},${setIdx})">${repOptions}</select>
                 <span class="set-unit">reps</span>
               </div>
@@ -342,11 +352,84 @@ container:
             renderApp();
           }
 
-          function toggleTopMenu(e){ e.stopPropagation(); const el=document.getElementById('top-menu'); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
-          function toggleExerciseMenu(e,idx){ e.stopPropagation(); const el=document.getElementById(`exercise-menu-${idx}`); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
-          function toggleSetMenu(e,exIdx,setIdx){ e.stopPropagation(); const el=document.getElementById(`set-menu-${exIdx}-${setIdx}`); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
-          function closeMenus(){ document.querySelectorAll('.menu-panel').forEach(el=>el.classList.add('hidden')); }
-          function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap')) closeMenus(); }
+          function toggleTopMenu(e){
+            e.stopPropagation();
+            closePortalMenu();
+            const el=document.getElementById('top-menu');
+            document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el && !x.closest('#menuPortal')) x.classList.add('hidden'); });
+            el.classList.toggle('hidden');
+          }
+
+          function openPortalMenu(anchorEl, html, align){
+            const portal = document.getElementById('menuPortal');
+            if (!portal) return;
+            portal.classList.remove('hidden');
+            portal.innerHTML = `<div class="menu-panel ${align==='left'?'left':''}" data-portal-menu="1">${html}</div>`;
+            const panel = portal.querySelector('[data-portal-menu="1"]');
+            if (!panel || !anchorEl) return;
+            const rect = anchorEl.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            let top = rect.bottom + 6;
+            let left = align === 'left' ? rect.left : rect.right - panelRect.width;
+            const pad = 8;
+            if (left + panelRect.width > window.innerWidth - pad) left = window.innerWidth - panelRect.width - pad;
+            if (left < pad) left = pad;
+            if (top + panelRect.height > window.innerHeight - pad) top = Math.max(pad, rect.top - panelRect.height - 6);
+            panel.style.top = `${top}px`;
+            panel.style.left = `${left}px`;
+          }
+
+          function closePortalMenu(){
+            const portal = document.getElementById('menuPortal');
+            if (!portal) return;
+            portal.classList.add('hidden');
+            portal.innerHTML = '';
+            portal.dataset.menuType = '';
+          }
+
+          function toggleExerciseMenu(e,idx){
+            e.stopPropagation();
+            const portal = document.getElementById('menuPortal');
+            const button = e.currentTarget || e.target;
+            if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `exercise-${idx}`){
+              closePortalMenu();
+              return;
+            }
+            closeMenus();
+            const ex = appState.workout.exercises[idx];
+            const html = [
+              !ex.is_unassigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : '',
+              `<button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>`,
+              `<button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>`,
+              `<button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>`,
+              `<button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>`,
+              !ex.is_unassigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : ''
+            ].join('');
+            openPortalMenu(button, html, 'right');
+            portal.dataset.menuType = `exercise-${idx}`;
+          }
+
+          function toggleSetMenu(e,exIdx,setIdx){
+            e.stopPropagation();
+            const portal = document.getElementById('menuPortal');
+            const button = e.currentTarget || e.target;
+            if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `set-${exIdx}-${setIdx}`){
+              closePortalMenu();
+              return;
+            }
+            closeMenus();
+            const html = `
+              <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
+              <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>`;
+            openPortalMenu(button, html, 'left');
+            portal.dataset.menuType = `set-${exIdx}-${setIdx}`;
+          }
+
+          function closeMenus(){
+            document.querySelectorAll('.menu-panel').forEach(el=>{ if(!el.closest('#menuPortal')) el.classList.add('hidden'); });
+            closePortalMenu();
+          }
+          function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap') && !e.target.closest('#menuPortal')) closeMenus(); }
 
           async function openChangeExercise(idx){
             const current = appState.workout.exercises[idx];
@@ -385,7 +468,26 @@ container:
             showHistory(items, ex.exercise_label || 'Exercise History');
           }
           function showHistory(items, title){
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div>${(items||[]).map(item=>`<div class="card" style="padding:8px"><div style="font-weight:700">${escapeHtml(item.completed_at || item.date || item.day_code || '')}</div><div class="muted">${escapeHtml(item.share_text || item.bucket || '')}</div></div>`).join('')}</div></div>`);
+            const cards = (items || []).map(item => {
+              const dateText = item.completed_at_display || formatLocalDateTime(item.completed_at || item.timestamp_ms || '');
+              const status = item.status || item.completion_bucket || '';
+              const share = item.share_text || '';
+              const copyDisabled = share ? '' : 'disabled';
+              const deleteButton = item.session_id ? `<button class="btn subtle" onclick="deleteHistorySession(this.dataset.sessionId)" data-session-id="${escapeAttr(item.session_id)}">Delete</button>` : '';
+              return `<div class="card" style="padding:8px"><div class="history-card-top"><div><div class="history-card-title">${escapeHtml(item.day_code ? 'Day ' + item.day_code : (item.exercise_name || 'Workout'))}</div><div class="muted history-card-date">${escapeHtml(dateText)}</div>${status ? `<div class="muted">${escapeHtml(status)}</div>` : ''}</div></div>${share ? `<div class="history-share muted">${escapeHtml(share)}</div>` : ''}<div class="modal-actions"><button class="btn secondary" ${copyDisabled} onclick="copyHistoryText(this.dataset.shareText)" data-share-text="${escapeAttr(share)}">Copy</button>${deleteButton}</div></div>`;
+            }).join('') || '<div class="muted">No history yet.</div>';
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div>${cards}</div></div>`);
+          }
+          function copyHistoryText(text){ if(text) navigator.clipboard?.writeText(text); }
+          async function deleteHistorySession(sessionId){
+            if (!sessionId) return;
+            if (!window.confirm('Delete this workout history entry?')) return;
+            const payload = await py('py_delete_history_session', sessionId);
+            if (payload) {
+              appState.workout = payload;
+              renderApp();
+            }
+            closeModal();
           }
 
           function openProgressionModal(){
@@ -446,7 +548,8 @@ container:
           function closeModal(){ const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
           function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
-          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+          function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
+          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
         </script>
       </div>
   type: HtmlTemplate
