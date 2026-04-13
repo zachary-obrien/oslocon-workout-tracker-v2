@@ -33,8 +33,8 @@ container:
           .day-select{min-width:92px;height:28px;padding:4px 9px;font-size:12px}
           .select{height:26px;padding:0 6px;font-size:13px}
           .hero-topline{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
-          .hero-name{flex:0 1 auto;min-width:0;max-width:42vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-          .hero-day{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.1}
+          .hero-name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
           .hero-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
           .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:visible;isolation:isolate}
           .exercise-card.done{border-color:rgba(31,163,106,.34);background:linear-gradient(180deg, rgba(31,163,106,.10), rgba(31,163,106,.03)), var(--card)}
@@ -64,7 +64,7 @@ container:
           .history-card-title{font-weight:700}
           .history-card-date{margin-top:4px}
           .history-share{margin-top:8px;white-space:pre-wrap;line-height:1.25}
-          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}.hero-name{max-width:36vw}.hero-day{font-size:11px}.hero-actions{gap:6px}}
+          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}.hero-name{max-width:none}.hero-actions{gap:6px}}
         </style>
 
         <div class="wrap">

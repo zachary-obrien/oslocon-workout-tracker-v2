@@ -44,6 +44,10 @@ def _get_primary_muscle(exercise):
   return muscles[0] if muscles else "General"
 
 
+def _user_timezone(user):
+  return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
+
+
 def _serialize_slot(user, slot, day_slots):
   exercise = slot["exercise"]
   display_order_index = day_slots.index(slot)
@@ -261,7 +265,9 @@ def _exercise_exceeded(sets_payload, uses_bodyweight):
 def _build_completion_summary(user, completion_bucket, tile_states, completed_at):
   session_count = len(get_recent_sessions(user, 10000))
   message = get_rotated_message(completion_bucket, session_count)
-  share_text = "Oslocon Workout!\n" + format_share_datetime(completed_at) + "\n" + "".join(tile_to_emoji(t) for t in tile_states)
+  timezone_name = _user_timezone(user)
+  formatted_date = format_share_datetime(completed_at, timezone_name)
+  share_text = "Oslocon Workout!\n" + formatted_date + "\n" + "".join(tile_to_emoji(t) for t in tile_states)
   return {
     "headline": {
       "skipped": "Workout logged",
@@ -269,7 +275,7 @@ def _build_completion_summary(user, completion_bucket, tile_states, completed_at
       "exceeded": "Outstanding work",
     }[completion_bucket],
     "message": message,
-    "date": format_share_datetime(completed_at, timezone_name),
+    "date": formatted_date,
     "tile_states": tile_states,
     "share_text": share_text,
     "show_confetti": completion_bucket in ("standard", "exceeded"),
