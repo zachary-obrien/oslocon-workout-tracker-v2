@@ -3,7 +3,23 @@ correct_dependency_ids: {}
 db_schema:
   completion_messages:
     client: none
-    columns: []
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: bucket
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: message
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: active
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: sort_order
+      type: number
     server: full
     title: completion_messages
   exercise_images:
@@ -83,7 +99,7 @@ db_schema:
       client_hidden: false
       name: primary_muscles
       type: simpleObject
-    - admin_ui: {width: 200}
+    - admin_ui: {width: 327}
       client_hidden: false
       name: secondary_muscles
       type: simpleObject
@@ -118,14 +134,115 @@ db_schema:
       type: datetime
     server: full
     title: exercises
+  files:
+    client: none
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: path
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: file
+      type: media
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: file_version
+      type: string
+    server: full
+    title: Files
   subscriptions:
     client: none
-    columns: []
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: current_period_end
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: updated_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: status
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: cancel_at_period_end
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: stripe_customer_id
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: plan_code
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: stripe_subscription_id
+      type: string
     server: full
     title: subscriptions
   user_exercise_state:
     client: none
-    columns: []
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: current_target_reps
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: strongest_estimated_1rm
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exercise
+      target: exercises
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: current_target_weight
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: last_workout_session_exercise
+      target: workout_session_exercises
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: qualifying_streak
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: updated_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: strongest_set_score
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: current_uses_bodyweight
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: last_completed_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
     server: full
     title: user_exercise_state
   users:
@@ -191,11 +308,11 @@ db_schema:
       client_hidden: false
       name: plan_tier
       type: string
-    - admin_ui: {order: 15, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: signed_up
       type: datetime
-    - admin_ui: {order: 16, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: remembered_logins
       type: simpleObject
@@ -204,32 +321,32 @@ db_schema:
   workout_days:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: user
       target: users
       type: link_single
-    - admin_ui: {order: 1, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: day_code
       type: string
-    - admin_ui: {order: 2, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: display_order
       type: number
-    - admin_ui: {order: 3, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: is_active
       type: bool
-    - admin_ui: {order: 4, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: created_at
       type: datetime
-    - admin_ui: {order: 5, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: updated_at
       type: datetime
-    - admin_ui: {order: 6, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: archived_at
       type: datetime
@@ -237,65 +354,240 @@ db_schema:
     title: workout_days
   workout_session_exercises:
     client: none
-    columns: []
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exercise_changed
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exercise_status
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: had_skipped_sets
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: display_order_snapshot
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exercise
+      target: exercises
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: muscle_group_snapshot
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: group_size_snapshot
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: uses_bodyweight
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: planned_reps
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: workout_slot
+      target: workout_slots
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exceeded_plan
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: exercise_name_snapshot
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: planned_sets
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: workout_session
+      target: workout_sessions
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: planned_weight
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: tile_state
+      type: string
     server: full
     title: workout_session_exercises
   workout_session_sets:
     client: none
-    columns: []
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: auto_completed
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: workout_session_exercise
+      target: workout_session_exercises
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: set_score
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: performed
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: actual_weight
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: actual_uses_bodyweight
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: planned_uses_bodyweight
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: planned_reps
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: estimated_1rm
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: actual_reps
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: planned_weight
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: set_index
+      type: number
     server: full
     title: workout_session_sets
   workout_sessions:
     client: none
-    columns: []
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: workout_day
+      target: workout_days
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: day_code_snapshot
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: started_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: completed_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: completion_bucket
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: share_text
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: notes
+      type: string
     server: full
     title: workout_sessions
   workout_slots:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: user
       target: users
       type: link_single
-    - admin_ui: {order: 1, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: workout_day
       target: workout_days
       type: link_single
-    - admin_ui: {order: 2, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: slot_number
       type: number
-    - admin_ui: {order: 3, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: display_order
       type: number
-    - admin_ui: {order: 4, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: exercise
       target: exercises
       type: link_single
-    - admin_ui: {order: 5, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: is_active
       type: bool
-    - admin_ui: {order: 6, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: base_target_weight
       type: number
-    - admin_ui: {order: 7, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: base_target_reps
       type: number
-    - admin_ui: {order: 8, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: default_sets
       type: number
-    - admin_ui: {order: 9, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: uses_bodyweight
       type: bool
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: updated_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: notes
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: archived_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
     server: full
     title: workout_slots
 dependencies: []
