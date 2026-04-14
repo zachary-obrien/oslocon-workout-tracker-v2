@@ -45,7 +45,7 @@ container:
           .menu-wrap{position:relative;z-index:3}
           .menu-panel{position:absolute;right:0;top:calc(100% + 6px);min-width:154px;background:linear-gradient(180deg, rgba(28,38,52,.98), rgba(21,29,40,.98));border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;z-index:2000}
           .menu-panel.left{left:0;right:auto}
-          .menu-item{width:100%;background:transparent;color:var(--text);border:none;text-align:left;padding:8px 11px;font-size:13px;cursor:pointer;white-space:nowrap}.menu-item:hover{background:rgba(255,255,255,.05)}.menu-item.danger{color:#ffcfbf}
+          .menu-item{width:100%;background:transparent;color:var(--text);border:none;text-align:left;padding:8px 11px;font-size:13px;cursor:pointer;white-space:nowrap}.menu-item:hover{background:rgba(255,255,255,.05)}.menu-item.danger{color:#ffcfbf}.menu-section-label{padding:6px 11px 4px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.95}.menu-divider{height:1px;background:rgba(255,255,255,.07);margin:2px 0}
           .set-list{position:relative;display:flex;flex-direction:column;gap:0;padding:0 6px 6px;overflow:visible}
           .set-row{position:relative;display:grid;grid-template-columns:30px 1fr 24px;align-items:center;gap:4px;background:rgba(255,255,255,.01);border:1px solid var(--border-soft);border-radius:0;padding:2px 6px;min-height:32px;margin-top:-1px;box-shadow:none}
           .set-row:first-child{margin-top:0;border-top-left-radius:10px;border-top-right-radius:10px}
@@ -158,9 +158,10 @@ container:
             return `<div class="tile-row"${extraStyle ? ` style="${extraStyle}"` : ''}>${states.map(t => `<span class="tile ${escapeHtml(t)}"></span>`).join('')}</div>`;
           }
 
-          function draftStorageKey(){
+          function draftStorageKey(dayCode){
             const email = appState.activeEmail || appState.user?.email || appState.workout?.resolvedUser?.email || '';
-            return email ? `oslocon_workout_draft::${String(email).toLowerCase()}` : '';
+            const resolvedDay = dayCode || appState.workout?.current_day || '';
+            return (email && resolvedDay) ? `oslocon_workout_draft::${String(email).toLowerCase()}::${resolvedDay}` : '';
           }
 
           function cloneJson(value){
@@ -213,17 +214,10 @@ container:
           }
 
           function clearDraftStorage(dayCode){
-            const key = draftStorageKey();
+            const key = draftStorageKey(dayCode);
             if (!key) return;
             try {
-              if (!dayCode) {
-                localStorage.removeItem(key);
-                return;
-              }
-              const raw = localStorage.getItem(key);
-              if (!raw) return;
-              const parsed = JSON.parse(raw);
-              if ((parsed || {}).current_day === dayCode) localStorage.removeItem(key);
+              localStorage.removeItem(key);
             } catch (err) {}
           }
 
@@ -327,9 +321,9 @@ container:
             return applied;
           }
 
-          function readStoredDraft(){
-            const key = draftStorageKey();
-            if (!key || appState.registrationRequired || !appState.workout) return null;
+          function readStoredDraft(dayCode){
+            const key = draftStorageKey(dayCode);
+            if (!key || appState.registrationRequired) return null;
             try {
               return JSON.parse(localStorage.getItem(key) || 'null');
             } catch (err) {
@@ -339,8 +333,9 @@ container:
 
           function checkPendingDraft(){
             pendingDraft = null;
-            const parsed = readStoredDraft();
-            if (!parsed || !parsed.current_day || !appState.workout) return;
+            if (!appState.workout) return;
+            const parsed = readStoredDraft(appState.workout.current_day);
+            if (!parsed || !parsed.current_day) return;
             if (parsed.current_day !== appState.workout.current_day) return;
             pendingDraft = parsed;
           }
@@ -583,12 +578,15 @@ container:
 
           async function loadDisplayedDay(dayCode){
             if(!dayCode) return;
+            persistDraftNow();
             const payload = await py('py_load_workout_day', dayCode);
             appState.workout = payload;
+            syncWorkoutState(appState.workout);
             autoPrompted = false;
             suppressAutoComplete = false;
             renderApp();
-            persistDraftSoon(20);
+            checkPendingDraft();
+            renderDraftBanner();
             queueAutoCompleteCheck();
           }
 
@@ -719,16 +717,18 @@ container:
             closeMenus();
             const ex = appState.workout.exercises[idx];
             const html = [
+              `<button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>`,
               !ex.is_unassigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : '',
               !ex.is_unassigned ? `<button class="menu-item" onclick="copyPreviousSetValues(${idx}); closeMenus()">Copy previous set values</button>` : '',
+              `<button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>`,
+              `<button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>`,
+              !ex.is_unassigned ? `<div class="menu-divider"></div><div class="menu-section-label">Set Type</div>` : '',
               !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'standard'); closeMenus()">${ex.set_mode==='standard' ? '✓ ' : ''}Standard Sets</button>` : '',
               !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'myo_sets'); closeMenus()">${ex.set_mode==='myo_sets' ? '✓ ' : ''}Myo Sets</button>` : '',
               !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'myo_rep_match'); closeMenus()">${ex.set_mode==='myo_rep_match' ? '✓ ' : ''}Myo Rep Match Sets</button>` : '',
-              `<button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>`,
-              `<button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>`,
-              `<button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>`,
-              `<button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>`,
-              !ex.is_unassigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : ''
+              `<div class="menu-divider"></div>`,
+              !ex.is_unassigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : '',
+              `<button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>`
             ].join('');
             openPortalMenu(button, html, 'right');
             portal.dataset.menuType = `exercise-${idx}`;
@@ -984,7 +984,7 @@ container:
 
           function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
           function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
-            </script>
+        </script>
       </div>
   type: HtmlTemplate
 is_package: true

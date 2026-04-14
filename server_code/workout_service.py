@@ -200,6 +200,16 @@ def _serialize_slot(user, slot, day_slots):
   state = get_user_exercise_state(user, exercise)
   previous = get_previous_session_summary(user, exercise)
   strongest = get_strongest_session_summary(user, exercise)
+  last_sets = list((previous or {}).get("sets") or [])
+  performed_sets = [s for s in last_sets if s.get("performed")]
+  seed_set = (performed_sets or last_sets or [None])[0]
+  if seed_set:
+    seeded_weight = seed_set.get("weight_value", seed_set.get("weight"))
+    seeded_reps = seed_set.get("reps")
+    if seeded_weight is not None or bool(safe_get(slot, "uses_bodyweight", False)):
+      targets["weight"] = seeded_weight if not bool(safe_get(slot, "uses_bodyweight", False)) else 'BW'
+    if seeded_reps not in (None, ""):
+      targets["reps"] = int(seeded_reps)
   return {
     "slot_number": safe_get(slot, "slot_number", None),
     "display_order": safe_get(slot, "display_order", None),

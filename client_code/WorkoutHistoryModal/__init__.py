@@ -3,8 +3,13 @@ from anvil import *
 import anvil.server
 import anvil.js
 
-
 EMOJIS = {"green": "🟩", "orange": "🟧", "red": "🟥", "gray": "⬜"}
+BG = "#141c26"
+BORDER = "#283548"
+TEXT = "#f3f6fb"
+MUTED = "#97a5b7"
+BTN_ROLE = "button-secondary"
+PRIMARY_ROLE = "button-primary"
 
 
 class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
@@ -16,15 +21,12 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     self.context_day_code = context_day_code
     self.current_muscle_group = current_muscle_group
     self.active_filter = "current_exercise" if self.context_exercise_id else "all_workouts"
-    self.selected_muscle = current_muscle_group or self._first_muscle_option()
+    self.selected_muscle = None
+    self.muscle_history_items = []
     self._build_ui()
 
   def _close(self, **event_args):
     self.raise_event("x-close-alert")
-
-  def _first_muscle_option(self):
-    options = self._muscle_options()
-    return options[0] if options else None
 
   def _muscle_options(self):
     options = []
@@ -36,8 +38,7 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
           if key and key not in seen:
             seen.add(key)
             options.append(key)
-    options.sort()
-    return options
+    return sorted(options)
 
   def _copy_text(self, text):
     if not text:
@@ -62,6 +63,9 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
 
   def _set_filter(self, filter_key, **event_args):
     self.active_filter = filter_key
+    if filter_key != "muscle_group":
+      self.selected_muscle = None
+      self.muscle_history_items = []
     self._build_ui()
 
   def _filtered_items(self):
@@ -70,10 +74,6 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       items = [x for x in items if self.context_exercise_id in {str(v) for v in (x.get("exercise_ids") or [])}]
     elif self.active_filter == "current_day" and self.context_day_code:
       items = [x for x in items if (x.get("day_code") or "") == self.context_day_code]
-    elif self.active_filter == "muscle_group":
-      selected = str(self.selected_muscle or "").strip()
-      if selected:
-        items = [x for x in items if selected in (x.get("primary_muscles") or []) or selected in (x.get("secondary_muscles") or []) or selected in (x.get("muscle_groups") or [])]
     return items
 
   def _tile_text(self, item):
@@ -85,78 +85,116 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       self.clear()
     except Exception:
       pass
-    self.root = ColumnPanel(role="modal-card")
+    self.background = "#10151d"
+    self.foreground = TEXT
+    self.root = ColumnPanel()
+    self.root.background = BG
+    self.root.foreground = TEXT
     self.add_component(self.root)
 
-    head = FlowPanel(align="justify")
+    head = FlowPanel(align="justify", spacing="small")
     title = self.exercise_name or "Workout history"
-    head.add_component(Label(text=title, role="exercise-title", spacing_above="none", spacing_below="none"))
-    close = Button(text="✕", role="icon-button")
+    head.add_component(Label(text=title, bold=True, font_size=18, foreground=TEXT, spacing_above="none", spacing_below="none"))
+    close = Button(text="✕", role=BTN_ROLE)
     close.set_event_handler("click", self._close)
     head.add_component(close)
     self.root.add_component(head)
 
-    subtitle = "Filters"
-    self.root.add_component(Label(text=subtitle, role="muted"))
-
-    controls = FlowPanel(gap="small")
+    controls = FlowPanel(spacing="tiny")
     if self.context_exercise_id:
-      btn = Button(text="Current exercise", role="button-primary" if self.active_filter == "current_exercise" else "button-secondary")
+      btn = Button(text="Current exercise", role=PRIMARY_ROLE if self.active_filter == "current_exercise" else BTN_ROLE)
       btn.set_event_handler("click", lambda **e: self._set_filter("current_exercise"))
       controls.add_component(btn)
 
-    muscle_options = self._muscle_options()
-    if muscle_options:
-      muscle_dd = DropDown(items=[(m, m) for m in muscle_options], selected_value=self.selected_muscle)
-      muscle_dd.set_event_handler("change", self._muscle_changed)
-      controls.add_component(muscle_dd)
-      muscle_btn = Button(text="Muscle group", role="button-primary" if self.active_filter == "muscle_group" else "button-secondary")
-      muscle_btn.set_event_handler("click", lambda **e: self._set_filter("muscle_group"))
-      controls.add_component(muscle_btn)
-
     if self.context_day_code:
-      btn = Button(text="Current day", role="button-primary" if self.active_filter == "current_day" else "button-secondary")
+      btn = Button(text="Current day", role=PRIMARY_ROLE if self.active_filter == "current_day" else BTN_ROLE)
       btn.set_event_handler("click", lambda **e: self._set_filter("current_day"))
       controls.add_component(btn)
 
-    all_btn = Button(text="All workouts", role="button-primary" if self.active_filter == "all_workouts" else "button-secondary")
+    muscle_btn = Button(text="Muscle group", role=PRIMARY_ROLE if self.active_filter == "muscle_group" else BTN_ROLE)
+    muscle_btn.set_event_handler("click", lambda **e: self._set_filter("muscle_group"))
+    controls.add_component(muscle_btn)
+
+    all_btn = Button(text="All workouts", role=PRIMARY_ROLE if self.active_filter == "all_workouts" else BTN_ROLE)
     all_btn.set_event_handler("click", lambda **e: self._set_filter("all_workouts"))
     controls.add_component(all_btn)
     self.root.add_component(controls)
 
-    items = self._filtered_items()
+    if self.active_filter == "muscle_group":
+      dd = DropDown(items=[("Select muscle…", None)] + [(m, m) for m in self._muscle_options()], selected_value=self.selected_muscle)
+      dd.background = "#1b2634"
+      dd.foreground = TEXT
+      dd.set_event_handler("change", self._muscle_changed)
+      self.root.add_component(dd)
+      if self.selected_muscle:
+        self.root.add_component(Label(text=f"Exercise history for {self.selected_muscle}", foreground=MUTED, spacing_above="small", spacing_below="small"))
+      else:
+        self.root.add_component(Label(text="Choose a muscle group to see exercise history.", foreground=MUTED, spacing_above="small", spacing_below="small"))
+
+    items = self.muscle_history_items if self.active_filter == "muscle_group" and self.selected_muscle else self._filtered_items()
     if not items:
-      self.root.add_component(Label(text="No history yet.", role="muted"))
+      self.root.add_component(Label(text="No history yet.", foreground=MUTED, spacing_above="small", spacing_below="none"))
       return
 
     for item in items:
-      card = ColumnPanel(role="card")
-      day = item.get("day_code") or "—"
-      card.add_component(Label(text=f"Day {day}", bold=True))
-      card.add_component(Label(text=item.get("completed_at_display") or "", role="muted"))
-      tile_text = self._tile_text(item)
-      if tile_text:
-        card.add_component(Label(text=tile_text))
-      names = item.get("exercise_names") or []
-      if names:
-        card.add_component(Label(text=", ".join(names[:4]) + ("…" if len(names) > 4 else ""), role="muted"))
-      button_row = FlowPanel(gap="small")
-      share = item.get("share_text") or ""
-      copy_btn = Button(text="Copy", role="button-secondary")
-      copy_btn.enabled = bool(share)
-      copy_btn.set_event_handler("click", lambda text=share, **e: self._copy_text(text))
-      button_row.add_component(copy_btn)
-      if item.get("session_id"):
-        delete_btn = Button(text="Delete", role="button-secondary")
-        delete_btn.set_event_handler("click", lambda session_id=item.get("session_id"), **e: self._delete_item(session_id))
-        button_row.add_component(delete_btn)
-      card.add_component(button_row)
+      card = ColumnPanel()
+      card.background = BG
+      card.foreground = TEXT
+      try:
+        card.border = f"1px solid {BORDER}"
+      except Exception:
+        pass
+      card.spacing_above = "small"
+      card.spacing_below = "none"
+      if self.active_filter == "muscle_group" and self.selected_muscle:
+        self._render_muscle_history_card(card, item)
+      else:
+        self._render_workout_card(card, item)
       self.root.add_component(card, full_width_row=True)
 
+  def _render_workout_card(self, card, item):
+    day = item.get("day_code") or "—"
+    card.add_component(Label(text=f"Day {day}", bold=True, foreground=TEXT, spacing_above="none", spacing_below="none"))
+    card.add_component(Label(text=item.get("completed_at_display") or "", foreground=MUTED, spacing_above="none", spacing_below="none"))
+    tile_text = self._tile_text(item)
+    if tile_text:
+      card.add_component(Label(text=tile_text, spacing_above="none", spacing_below="none"))
+    button_row = FlowPanel(spacing="small")
+    share = item.get("share_text") or ""
+    copy_btn = Button(text="Copy", role=BTN_ROLE)
+    copy_btn.enabled = bool(share)
+    copy_btn.set_event_handler("click", lambda text=share, **e: self._copy_text(text))
+    delete_btn = Button(text="Delete", role=BTN_ROLE)
+    delete_btn.enabled = bool(item.get("session_id"))
+    delete_btn.set_event_handler("click", lambda session_id=item.get("session_id"), **e: self._delete_item(session_id))
+    button_row.add_component(copy_btn)
+    button_row.add_component(delete_btn)
+    card.add_component(button_row)
+
+  def _render_muscle_history_card(self, card, item):
+    title_bits = [item.get("exercise_name") or "Exercise"]
+    if item.get("day_code"):
+      title_bits.append(f"Day {item['day_code']}")
+    card.add_component(Label(text=" • ".join(title_bits), bold=True, foreground=TEXT, spacing_above="none", spacing_below="none"))
+    card.add_component(Label(text=item.get("completed_at_display") or "", foreground=MUTED, spacing_above="none", spacing_below="none"))
+    if item.get("set_mode_label"):
+      card.add_component(Label(text=item.get("set_mode_label"), foreground=MUTED, spacing_above="none", spacing_below="none"))
+    set_bits = []
+    for idx, set_info in enumerate(item.get("sets") or [], start=1):
+      if not set_info.get("performed"):
+        continue
+      weight = set_info.get("weight") or "—"
+      reps = set_info.get("reps") or "—"
+      set_bits.append(f"{idx}: {weight} × {reps}")
+    if set_bits:
+      card.add_component(Label(text="  |  ".join(set_bits[:4]), foreground=MUTED, spacing_above="none", spacing_below="none"))
+
   def _muscle_changed(self, **event_args):
-    dd = event_args.get("sender") if isinstance(event_args, dict) else None
-    if dd is None:
-      return
-    self.selected_muscle = dd.selected_value
-    self.active_filter = "muscle_group"
+    sender = event_args.get("sender") if isinstance(event_args, dict) else None
+    self.selected_muscle = sender.selected_value if sender else None
+    if self.selected_muscle:
+      self.muscle_history_items = anvil.server.call("get_muscle_history", self.selected_muscle)
+      self.active_filter = "muscle_group"
+    else:
+      self.muscle_history_items = []
     self._build_ui()

@@ -82,6 +82,7 @@ def _serialize_session_exercise(row, timezone_name="America/Chicago"):
     "exercise_name": safe_get(row, "exercise_name_snapshot", ""),
     "status": safe_get(row, "exercise_status", ""),
     "set_mode": _row_set_mode(row),
+    "set_mode_label": {"standard": "Standard Sets", "myo_sets": "Myo Sets", "myo_rep_match": "Myo Rep Match Sets"}.get(_row_set_mode(row), "Standard Sets"),
     "tile_state": safe_get(row, "tile_state", "gray"),
     "planned_weight": safe_get(row, "planned_weight", None),
     "planned_reps": safe_get(row, "planned_reps", None),
@@ -355,3 +356,20 @@ def delete_history_session(session_id, selected_day_code=None):
 
   task = anvil.server.launch_background_task("delete_history_session_task", session_id)
   return {"queued": True, "task_id": task.get_id()}
+
+
+@anvil.server.callable
+def get_muscle_history(muscle_name):
+  user = get_current_user()
+  target = str(muscle_name or "").strip()
+  if not target:
+    return []
+  rows = [r for r in app_tables.workout_session_exercises.search(user=user)]
+  matched = []
+  for row in rows:
+    primary = _row_primary_muscles(row)
+    secondary = _row_secondary_muscles(row)
+    if target in primary or target in secondary:
+      matched.append(_serialize_session_exercise(row, _user_timezone(user)))
+  matched.sort(key=lambda x: x.get("completed_at") or datetime(1970,1,1,tzinfo=timezone.utc), reverse=True)
+  return matched
