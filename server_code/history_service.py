@@ -17,22 +17,10 @@ def _user_timezone(user):
   return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
 
 
-def _lookup_session_by_id(session_id):
-  candidates = [session_id]
-  if isinstance(session_id, str):
-    stripped = session_id.strip()
-    if stripped not in candidates:
-      candidates.append(stripped)
-    if stripped.isdigit():
-      candidates.append(int(stripped))
-  for candidate in candidates:
-    try:
-      session = app_tables.workout_sessions.get_by_id(candidate)
-    except Exception:
-      session = None
-    if session is not None:
-      return session
-  return None
+def _session_tile_states(session):
+  rows = [r for r in app_tables.workout_session_exercises.search(workout_session=session)]
+  rows.sort(key=lambda r: ((r["display_order_snapshot"] or 9999), (r["created_at"] or now())))
+  return [r["tile_state"] or "gray" for r in rows]
 
 
 def _serialize_session_exercise(row, timezone_name="America/Chicago"):
@@ -200,6 +188,7 @@ def get_recent_history(limit=20):
       "day_code": s["day_code_snapshot"],
       "completion_bucket": s["completion_bucket"],
       "share_text": s["share_text"],
+      "tile_states": _session_tile_states(s),
     }
     for s in sessions
   ]
@@ -215,13 +204,8 @@ def get_exercise_history(exercise_id):
   return [_serialize_session_exercise(r, _user_timezone(user)) for r in rows[:15]]
 
 
-@anvil.server.callable
-def delete_history_session(session_id, selected_day_code=None):
-  user = get_current_user()
-  session = _lookup_session_by_id(session_id)
-  if session is None or session["user"] != user:
-    raise Exception("Workout history entry not found.")
-
+def _delete_history_session_impl(session):
+  user = session["user"]
   session_rows = [r for r in app_tables.workout_session_exercises.search(workout_session=session)]
   affected_exercises = []
   for row in session_rows:
@@ -236,5 +220,22 @@ def delete_history_session(session_id, selected_day_code=None):
   for exercise in affected_exercises:
     _rebuild_user_exercise_state(user, exercise)
 
-  from workout_service import build_workout_payload
-  return build_workout_payload(user, selected_day_code)
+
+@anvil.server.background_task
+def delete_history_session_task(session_id):
+  session = app_tables.workout_sessions.get_by_id(session_id)
+  if session is None:
+    return {"deleted": False}
+  _delete_history_session_impl(session)
+  return {"deleted": True}
+
+
+@anvil.server.callable
+def delete_history_session(session_id, selected_day_code=None):
+  user = get_current_user()
+  session = app_tables.workout_sessions.get_by_id(session_id)
+  if session is None or session["user"] != user:
+    raise Exception("Workout history entry not found.")
+
+  task = anvil.server.launch_background_task("delete_history_session_task", session_id)
+  return {"queued": True, "task_id": task.get_id()}
