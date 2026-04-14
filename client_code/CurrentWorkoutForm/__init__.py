@@ -72,8 +72,8 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
     return anvil.server.call('get_exercise_history', exercise_id)
 
   def py_delete_history_session(self, session_id):
-    payload = anvil.server.call('delete_history_session', session_id, self.current_day)
-    return self._update_workout(payload)
+    with anvil.server.no_loading_indicator:
+      return anvil.server.call('delete_history_session', session_id, self.current_day)
 
   def py_search_exercises(self, query):
     try:

@@ -1,7 +1,7 @@
 import anvil.server
 from anvil.tables import app_tables
 
-from formatting_service import format_share_datetime, tile_to_emoji
+from formatting_service import format_share_datetime, tile_to_emoji, normalize_for_match
 from table_helpers import (
 get_current_user,
 get_active_days,
@@ -48,14 +48,15 @@ def _user_timezone(user):
   return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
 
 
-def _lookup_exercise_by_id(exercise_id):
-  candidates = [exercise_id]
-  if isinstance(exercise_id, str):
-    stripped = exercise_id.strip()
+def _lookup_exercise_reference(exercise_ref):
+  candidates = [exercise_ref]
+  if isinstance(exercise_ref, str):
+    stripped = exercise_ref.strip()
     if stripped not in candidates:
       candidates.append(stripped)
     if stripped.isdigit():
       candidates.append(int(stripped))
+
   for candidate in candidates:
     try:
       exercise = app_tables.exercises.get_by_id(candidate)
@@ -63,6 +64,18 @@ def _lookup_exercise_by_id(exercise_id):
       exercise = None
     if exercise is not None:
       return exercise
+
+  raw = str(exercise_ref or '').strip()
+  if not raw:
+    return None
+
+  target = normalize_for_match(raw)
+  for row in app_tables.exercises.search(is_active=True):
+    row_name = row["name"] or ""
+    row_normalized = row["normalized_name"] or row_name
+    if normalize_for_match(row_name) == target or normalize_for_match(row_normalized) == target:
+      return row
+
   return None
 
 
@@ -219,7 +232,7 @@ def move_exercise_slot(day_code, slot_number, direction):
 def assign_slot_exercise(day_code, slot_number, exercise_id):
   user = get_current_user()
   _, slot = _get_slot_by_identifiers(user, day_code, slot_number)
-  exercise = _lookup_exercise_by_id(exercise_id)
+  exercise = _lookup_exercise_reference(exercise_id)
   if exercise is None:
     raise Exception("Exercise not found.")
   slot.update(exercise=exercise, uses_bodyweight=bool(exercise["uses_bodyweight_default"]), updated_at=now())
