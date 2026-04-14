@@ -543,417 +543,421 @@ container:
             for(let x=5;x<=300;x+=2.5){
               const label = Number.isInteger(x)?String(x):String(x);
               const sel = Number(selected)===x ? 'selected' : '';
-              out += `<option value="${x}" ${sel}>${label}</option>`;
-            }
-            return out;
-          }
+                out += `<option value="${x}" ${sel}>${label}</option>`;
+                }
+                return out;
+                }
 
-          function buildRepOptions(selected){
-            let out='';
-            for(let i=3;i<=30;i++) out += `<option value="${i}" ${Number(selected)===i?'selected':''}>${i}</option>`;
-            return out;
-          }
+                function buildRepOptions(selected){
+                let out='';
+                for(let i=3;i<=30;i++) out += `<option value="${i}" ${Number(selected)===i?'selected':''}>${i}</option>`;
+                return out;
+                }
 
-          function collapsedSummary(ex){
-            if(ex.status==='skipped') return 'Skipped for this workout';
-            const sets = ex.sets || [];
-            if(!sets.length) return 'Completed';
-            const checked = sets.filter(s=>s.performed).length;
-            const avg = Math.round(sets.reduce((a,s)=>a+Number(s.reps||0),0)/Math.max(sets.length,1));
-            const first = sets[0]?.weight;
-            const weightText = ex.uses_bodyweight ? 'BW' : `${first} lb`;
-            return `Completed · ${checked}/${sets.length} sets checked · ${weightText} · avg ${avg} reps`;
-          }
+                function collapsedSummary(ex){
+                if(ex.status==='skipped') return 'Skipped for this workout';
+                const sets = ex.sets || [];
+                if(!sets.length) return 'Completed';
+                const checked = sets.filter(s=>s.performed).length;
+                const avg = Math.round(sets.reduce((a,s)=>a+Number(s.reps||0),0)/Math.max(sets.length,1));
+                const first = sets[0]?.weight;
+                const weightText = ex.uses_bodyweight ? 'BW' : `${first} lb`;
+                return `Completed · ${checked}/${sets.length} sets checked · ${weightText} · avg ${avg} reps`;
+                }
 
-          async function registerCurrentUser(){
-            const name = document.getElementById('registerName').value.trim();
-            if(!name) return;
-            const data = await py('py_register_current_user', name);
-            appState.registrationRequired = false;
-            appState.workout = data.workout || data;
-            appState.user = appState.workout?.resolvedUser || appState.user;
-            renderApp();
-            persistDraftSoon(20);
-          }
+                async function registerCurrentUser(){
+                const name = document.getElementById('registerName').value.trim();
+                if(!name) return;
+                const data = await py('py_register_current_user', name);
+                appState.registrationRequired = false;
+                appState.workout = data.workout || data;
+                appState.user = appState.workout?.resolvedUser || appState.user;
+                renderApp();
+                persistDraftSoon(20);
+                }
 
-          async function loadDisplayedDay(dayCode){
-            if(!dayCode) return;
-            persistDraftNow();
-            const payload = await py('py_load_workout_day', dayCode);
-            appState.workout = payload;
-            syncWorkoutState(appState.workout);
-            autoPrompted = false;
-            suppressAutoComplete = false;
-            renderApp();
-            checkPendingDraft();
-            renderDraftBanner();
-            queueAutoCompleteCheck();
-          }
+                async function loadDisplayedDay(dayCode){
+                if(!dayCode) return;
+                persistDraftNow();
+                const payload = await py('py_load_workout_day', dayCode);
+                appState.workout = payload;
+                syncWorkoutState(appState.workout);
+                const storedDraft = readStoredDraft(dayCode);
+                if (storedDraft) {
+                applyDraftStateToWorkout(appState.workout, storedDraft);
+                }
+                autoPrompted = false;
+                suppressAutoComplete = false;
+                renderApp();
+                checkPendingDraft();
+                renderDraftBanner();
+                queueAutoCompleteCheck();
+                }
 
-          async function addExerciseSlot(){
-            const payload = await py('py_add_exercise_slot');
-            appState.workout = payload;
-            renderApp();
-            persistDraftSoon(20);
-          }
+                async function addExerciseSlot(){
+                const payload = await py('py_add_exercise_slot');
+                appState.workout = payload;
+                renderApp();
+                persistDraftSoon(20);
+                }
 
-          async function addWorkoutDay(){
-            const payload = await py('py_add_workout_day');
-            appState.workout = payload;
-            autoPrompted = false;
-            suppressAutoComplete = false;
-            renderApp();
-            persistDraftSoon(20);
-            const firstEmptyIdx = (appState.workout?.exercises || []).findIndex(ex => ex.is_unassigned);
-            if (firstEmptyIdx >= 0) {
-              setTimeout(() => openChangeExercise(firstEmptyIdx), 0);
-            }
-          }
+                async function addWorkoutDay(){
+                const payload = await py('py_add_workout_day');
+                appState.workout = payload;
+                autoPrompted = false;
+                suppressAutoComplete = false;
+                renderApp();
+                persistDraftSoon(20);
+                const firstEmptyIdx = (appState.workout?.exercises || []).findIndex(ex => ex.is_unassigned);
+                if (firstEmptyIdx >= 0) {
+                setTimeout(() => openChangeExercise(firstEmptyIdx), 0);
+                }
+                }
 
-          async function removeCurrentWorkoutDay(){ const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); persistDraftSoon(20); }
-          async function moveExercise(idx, dir){ const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); persistDraftSoon(20); }
-          async function removeExercise(idx){ const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); persistDraftSoon(20); }
-          function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); persistDraftSoon(); queueAutoCompleteCheck(); }
-          function editCollapsed(idx){ appState.workout.exercises[idx].collapsed=false; appState.workout.exercises[idx].status='active'; suppressAutoComplete = true; renderApp(); persistDraftSoon(); }
+                async function removeCurrentWorkoutDay(){ const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); persistDraftSoon(20); }
+                async function moveExercise(idx, dir){ const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); persistDraftSoon(20); }
+                async function removeExercise(idx){ const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); persistDraftSoon(20); }
+                function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); persistDraftSoon(); queueAutoCompleteCheck(); }
+                function editCollapsed(idx){ appState.workout.exercises[idx].collapsed=false; appState.workout.exercises[idx].status='active'; suppressAutoComplete = true; renderApp(); persistDraftSoon(); }
 
-          function setValueChanged(exIdx,setIdx){
-            const ex = appState.workout.exercises[exIdx];
-            const currentSet = ex.sets[setIdx];
-            if (currentSet.locked) return;
-            const nextWeight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
-            const nextReps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
-            currentSet.weight = nextWeight;
-            currentSet.reps = nextReps;
-            for(let i=setIdx+1;i<ex.sets.length;i++){
-              if(ex.sets[i].performed) continue;
-              if(ex.set_mode === 'myo_sets' && setIdx === 0){
+                function setValueChanged(exIdx,setIdx){
+                const ex = appState.workout.exercises[exIdx];
+                const currentSet = ex.sets[setIdx];
+                if (currentSet.locked) return;
+                const nextWeight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
+                const nextReps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
+                currentSet.weight = nextWeight;
+                currentSet.reps = nextReps;
+                for(let i=setIdx+1;i<ex.sets.length;i++){
+                if(ex.sets[i].performed) continue;
+                if(ex.set_mode === 'myo_sets' && setIdx === 0){
                 ex.sets[i].weight = nextWeight;
-              } else {
+                } else {
                 ex.sets[i].weight = nextWeight;
                 ex.sets[i].reps = nextReps;
-              }
-              const weightEl = document.getElementById(`w-${exIdx}-${i}`);
-              const repsEl = document.getElementById(`r-${exIdx}-${i}`);
-              if(weightEl) weightEl.value = ex.sets[i].weight;
-              if(repsEl) repsEl.value = String(ex.sets[i].reps);
-            }
-            syncExerciseMode(ex);
-            persistDraftSoon();
-          }
+                }
+                const weightEl = document.getElementById(`w-${exIdx}-${i}`);
+                const repsEl = document.getElementById(`r-${exIdx}-${i}`);
+                if(weightEl) weightEl.value = ex.sets[i].weight;
+                if(repsEl) repsEl.value = String(ex.sets[i].reps);
+                }
+                syncExerciseMode(ex);
+                persistDraftSoon();
+                }
 
-          function toggleSetDone(exIdx,setIdx){
-            const ex = appState.workout.exercises[exIdx];
-            const s = ex.sets[setIdx];
-            s.performed = !s.performed;
-            updateExerciseStatusFromSets(ex);
-            renderApp();
-            persistDraftSoon();
-            queueAutoCompleteCheck();
-          }
+                function toggleSetDone(exIdx,setIdx){
+                const ex = appState.workout.exercises[exIdx];
+                const s = ex.sets[setIdx];
+                s.performed = !s.performed;
+                updateExerciseStatusFromSets(ex);
+                renderApp();
+                persistDraftSoon();
+                queueAutoCompleteCheck();
+                }
 
-          function addSetBelow(exIdx,setIdx){
-            const ex = appState.workout.exercises[exIdx];
-            const src = {...ex.sets[setIdx], performed:false, auto_completed:false};
-            ex.sets.splice(setIdx+1,0,src);
-            syncExerciseMode(ex);
-            updateExerciseStatusFromSets(ex);
-            renderApp();
-            persistDraftSoon();
-            queueAutoCompleteCheck();
-          }
-          function deleteSet(exIdx,setIdx){
-            const ex = appState.workout.exercises[exIdx];
-            if(ex.sets.length>1) ex.sets.splice(setIdx,1); else { ex.sets[0].performed=false; ex.sets[0].auto_completed=false; }
-            syncExerciseMode(ex);
-            updateExerciseStatusFromSets(ex);
-            renderApp();
-            persistDraftSoon();
-            queueAutoCompleteCheck();
-          }
+                function addSetBelow(exIdx,setIdx){
+                const ex = appState.workout.exercises[exIdx];
+                const src = {...ex.sets[setIdx], performed:false, auto_completed:false};
+                ex.sets.splice(setIdx+1,0,src);
+                syncExerciseMode(ex);
+                updateExerciseStatusFromSets(ex);
+                renderApp();
+                persistDraftSoon();
+                queueAutoCompleteCheck();
+                }
+                function deleteSet(exIdx,setIdx){
+                const ex = appState.workout.exercises[exIdx];
+                if(ex.sets.length>1) ex.sets.splice(setIdx,1); else { ex.sets[0].performed=false; ex.sets[0].auto_completed=false; }
+                syncExerciseMode(ex);
+                updateExerciseStatusFromSets(ex);
+                renderApp();
+                persistDraftSoon();
+                queueAutoCompleteCheck();
+                }
 
-          function toggleTopMenu(e){
-            e.stopPropagation();
-            closePortalMenu();
-            const el=document.getElementById('top-menu');
-            document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el && !x.closest('#menuPortal')) x.classList.add('hidden'); });
-            el.classList.toggle('hidden');
-          }
+                function toggleTopMenu(e){
+                e.stopPropagation();
+                closePortalMenu();
+                const el=document.getElementById('top-menu');
+                document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el && !x.closest('#menuPortal')) x.classList.add('hidden'); });
+                el.classList.toggle('hidden');
+                }
 
-          function openPortalMenu(anchorEl, html, align){
-            const portal = document.getElementById('menuPortal');
-            if (!portal) return;
-            portal.classList.remove('hidden');
-            portal.innerHTML = `<div class="menu-panel ${align==='left'?'left':''}" data-portal-menu="1">${html}</div>`;
-            const panel = portal.querySelector('[data-portal-menu="1"]');
-            if (!panel || !anchorEl) return;
-            const rect = anchorEl.getBoundingClientRect();
-            const panelRect = panel.getBoundingClientRect();
-            let top = rect.bottom + 6;
-            let left = align === 'left' ? rect.left : rect.right - panelRect.width;
-            const pad = 8;
-            if (left + panelRect.width > window.innerWidth - pad) left = window.innerWidth - panelRect.width - pad;
-            if (left < pad) left = pad;
-            if (top + panelRect.height > window.innerHeight - pad) top = Math.max(pad, rect.top - panelRect.height - 6);
-            panel.style.top = `${top}px`;
-            panel.style.left = `${left}px`;
-          }
+                function openPortalMenu(anchorEl, html, align){
+                const portal = document.getElementById('menuPortal');
+                if (!portal) return;
+                portal.classList.remove('hidden');
+                portal.innerHTML = `<div class="menu-panel ${align==='left'?'left':''}" data-portal-menu="1">${html}</div>`;
+                const panel = portal.querySelector('[data-portal-menu="1"]');
+                if (!panel || !anchorEl) return;
+                const rect = anchorEl.getBoundingClientRect();
+                const panelRect = panel.getBoundingClientRect();
+                let top = rect.bottom + 6;
+                let left = align === 'left' ? rect.left : rect.right - panelRect.width;
+                const pad = 8;
+                if (left + panelRect.width > window.innerWidth - pad) left = window.innerWidth - panelRect.width - pad;
+                if (left < pad) left = pad;
+                if (top + panelRect.height > window.innerHeight - pad) top = Math.max(pad, rect.top - panelRect.height - 6);
+                panel.style.top = `${top}px`;
+                panel.style.left = `${left}px`;
+                }
 
-          function closePortalMenu(){
-            const portal = document.getElementById('menuPortal');
-            if (!portal) return;
-            portal.classList.add('hidden');
-            portal.innerHTML = '';
-            portal.dataset.menuType = '';
-          }
+                function closePortalMenu(){
+                const portal = document.getElementById('menuPortal');
+                if (!portal) return;
+                portal.classList.add('hidden');
+                portal.innerHTML = '';
+                portal.dataset.menuType = '';
+                }
 
-          function toggleExerciseMenu(e,idx){
-            e.stopPropagation();
-            const portal = document.getElementById('menuPortal');
-            const button = e.currentTarget || e.target;
-            if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `exercise-${idx}`){
-              closePortalMenu();
-              return;
-            }
-            closeMenus();
-            const ex = appState.workout.exercises[idx];
-            const html = [
-              `<button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>`,
-              !ex.is_unassigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : '',
-              !ex.is_unassigned ? `<button class="menu-item" onclick="copyPreviousSetValues(${idx}); closeMenus()">Copy previous set values</button>` : '',
-              `<button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>`,
-              `<button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>`,
-              !ex.is_unassigned ? `<div class="menu-divider"></div><div class="menu-section-label">Set Type</div>` : '',
-              !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'standard'); closeMenus()">${ex.set_mode==='standard' ? '✓ ' : ''}Standard Sets</button>` : '',
-              !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'myo_sets'); closeMenus()">${ex.set_mode==='myo_sets' ? '✓ ' : ''}Myo Sets</button>` : '',
-              !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'myo_rep_match'); closeMenus()">${ex.set_mode==='myo_rep_match' ? '✓ ' : ''}Myo Rep Match Sets</button>` : '',
-              `<div class="menu-divider"></div>`,
-              !ex.is_unassigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : '',
-              `<button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>`
-            ].join('');
-            openPortalMenu(button, html, 'right');
-            portal.dataset.menuType = `exercise-${idx}`;
-          }
+                function toggleExerciseMenu(e,idx){
+                e.stopPropagation();
+                const portal = document.getElementById('menuPortal');
+                const button = e.currentTarget || e.target;
+                if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `exercise-${idx}`){
+                closePortalMenu();
+                return;
+                }
+                closeMenus();
+                const ex = appState.workout.exercises[idx];
+                const html = [
+                `<button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>`,
+                !ex.is_unassigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : '',
+                !ex.is_unassigned ? `<button class="menu-item" onclick="copyPreviousSetValues(${idx}); closeMenus()">Copy previous set values</button>` : '',
+                `<button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>`,
+                `<button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>`,
+                !ex.is_unassigned ? `<div class="menu-divider"></div><div class="menu-section-label">Set Type</div>` : '',
+                !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'standard'); closeMenus()">${ex.set_mode==='standard' ? '✓ ' : ''}Standard Sets</button>` : '',
+                !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'myo_sets'); closeMenus()">${ex.set_mode==='myo_sets' ? '✓ ' : ''}Myo Sets</button>` : '',
+                !ex.is_unassigned ? `<button class="menu-item" onclick="setExerciseMode(${idx}, 'myo_rep_match'); closeMenus()">${ex.set_mode==='myo_rep_match' ? '✓ ' : ''}Myo Rep Match Sets</button>` : '',
+                `<div class="menu-divider"></div>`,
+                !ex.is_unassigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : '',
+                `<button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>`
+                ].join('');
+                openPortalMenu(button, html, 'right');
+                portal.dataset.menuType = `exercise-${idx}`;
+                }
 
-          function toggleSetMenu(e,exIdx,setIdx){
-            e.stopPropagation();
-            const portal = document.getElementById('menuPortal');
-            const button = e.currentTarget || e.target;
-            if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `set-${exIdx}-${setIdx}`){
-              closePortalMenu();
-              return;
-            }
-            closeMenus();
-            const html = `
-              <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
-              <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>`;
-            openPortalMenu(button, html, 'left');
-            portal.dataset.menuType = `set-${exIdx}-${setIdx}`;
-          }
+                function toggleSetMenu(e,exIdx,setIdx){
+                e.stopPropagation();
+                const portal = document.getElementById('menuPortal');
+                const button = e.currentTarget || e.target;
+                if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `set-${exIdx}-${setIdx}`){
+                closePortalMenu();
+                return;
+                }
+                closeMenus();
+                const html = `
+                <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
+                <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>`;
+                openPortalMenu(button, html, 'left');
+                portal.dataset.menuType = `set-${exIdx}-${setIdx}`;
+                }
 
-          function closeMenus(){
-            document.querySelectorAll('.menu-panel').forEach(el=>{ if(!el.closest('#menuPortal')) el.classList.add('hidden'); });
-            closePortalMenu();
-          }
-          function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap') && !e.target.closest('#menuPortal')) closeMenus(); }
+                function closeMenus(){
+                document.querySelectorAll('.menu-panel').forEach(el=>{ if(!el.closest('#menuPortal')) el.classList.add('hidden'); });
+                closePortalMenu();
+                }
+                function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap') && !e.target.closest('#menuPortal')) closeMenus(); }
 
-          function focusExerciseSearchInput(){
-            setTimeout(() => {
-              const input = document.getElementById('exerciseSearch');
-              if (!input) return;
-              try {
+                function focusExerciseSearchInput(){
+                setTimeout(() => {
+                const input = document.getElementById('exerciseSearch');
+                if (!input) return;
+                try {
                 input.focus();
                 input.select();
-              } catch (err) {}
-            }, 0);
-          }
+                } catch (err) {}
+                }, 0);
+                }
 
-          function renderExerciseSearchResults(results, idx){
-            const host = document.getElementById('exerciseSearchResults');
-            if (!host) return;
-            currentExerciseSearchResults = results || [];
-            if (!currentExerciseSearchResults.length){
-              host.innerHTML = '<div class="muted">No matching exercises.</div>';
-              return;
-            }
-            host.innerHTML = currentExerciseSearchResults.map((r, resultIdx) => `
-              <div class="card search-result" style="padding:8px">
+                function renderExerciseSearchResults(results, idx){
+                const host = document.getElementById('exerciseSearchResults');
+                if (!host) return;
+                currentExerciseSearchResults = results || [];
+                if (!currentExerciseSearchResults.length){
+                host.innerHTML = '<div class="muted">No matching exercises.</div>';
+                return;
+                }
+                host.innerHTML = currentExerciseSearchResults.map((r, resultIdx) => `
+                <div class="card search-result" style="padding:8px">
                 <button class="search-result-main" style="background:transparent;border:none;color:inherit;cursor:pointer;text-align:left" onclick="pickExerciseResult(${idx}, ${resultIdx})">
-                  <div style="font-weight:700">${escapeHtml(r.name)}</div>
-                  <div class="muted">${escapeHtml(titleCaseWords(r.muscle_group || ''))}</div>
+                <div style="font-weight:700">${escapeHtml(r.name)}</div>
+                <div class="muted">${escapeHtml(titleCaseWords(r.muscle_group || ''))}</div>
                 </button>
                 <button class="btn secondary small info-btn" onclick="openExerciseDetailsFromSearch(event, ${resultIdx})">i</button>
-              </div>
-            `).join('');
-          }
+                </div>
+                `).join('');
+                }
 
-          function scheduleExerciseSearch(idx, options){
-            const opts = options || {};
-            const input = document.getElementById('exerciseSearch');
-            if (!input) return;
-            const query = typeof opts.query === 'string' ? opts.query : input.value;
-            clearTimeout(exerciseSearchTimer);
-            const delay = opts.immediate ? 0 : 180;
-            const token = ++exerciseSearchToken;
-            latestExerciseSearchToken = token;
-            exerciseSearchTimer = setTimeout(() => performExerciseSearch(idx, query, token), delay);
-          }
+                function scheduleExerciseSearch(idx, options){
+                const opts = options || {};
+                const input = document.getElementById('exerciseSearch');
+                if (!input) return;
+                const query = typeof opts.query === 'string' ? opts.query : input.value;
+                clearTimeout(exerciseSearchTimer);
+                const delay = opts.immediate ? 0 : 180;
+                const token = ++exerciseSearchToken;
+                latestExerciseSearchToken = token;
+                exerciseSearchTimer = setTimeout(() => performExerciseSearch(idx, query, token), delay);
+                }
 
-          async function performExerciseSearch(idx, query, token){
-            const host = document.getElementById('exerciseSearchResults');
-            if (host) host.innerHTML = '<div class="muted">Searching…</div>';
-            let results = [];
-            try {
-              results = await py('py_search_exercises', query || '');
-            } catch (err) {
-              if (token !== latestExerciseSearchToken) return;
-              if (host) host.innerHTML = '<div class="muted">Search failed.</div>';
-              return;
-            }
-            if (token !== latestExerciseSearchToken) return;
-            renderExerciseSearchResults(results, idx);
-          }
+                async function performExerciseSearch(idx, query, token){
+                const host = document.getElementById('exerciseSearchResults');
+                if (host) host.innerHTML = '<div class="muted">Searching…</div>';
+                let results = [];
+                try {
+                results = await py('py_search_exercises', query || '');
+                } catch (err) {
+                if (token !== latestExerciseSearchToken) return;
+                if (host) host.innerHTML = '<div class="muted">Search failed.</div>';
+                return;
+                }
+                if (token !== latestExerciseSearchToken) return;
+                renderExerciseSearchResults(results, idx);
+                }
 
-          async function openChangeExercise(idx){
-            const current = appState.workout.exercises[idx];
-            const initialValue = current && !current.is_unassigned && current.exercise_label !== 'Select exercise' ? (current.exercise_label || '') : '';
-            showModal(`
-              <div class="modal-card">
+                async function openChangeExercise(idx){
+                const current = appState.workout.exercises[idx];
+                const initialValue = current && !current.is_unassigned && current.exercise_label !== 'Select exercise' ? (current.exercise_label || '') : '';
+                showModal(`
+                <div class="modal-card">
                 <div class="modal-head"><div class="modal-title">Change Exercise</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div>
                 <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="scheduleExerciseSearch(${idx})" />
                 <div id="exerciseSearchResults" style="margin-top:10px"></div>
-              </div>`);
-            window.currentExerciseSlotIndex = idx;
-            const input = document.getElementById('exerciseSearch');
-            if (input) input.value = initialValue;
-            focusExerciseSearchInput();
-            scheduleExerciseSearch(idx, { query: initialValue, immediate: true });
-          }
+                </div>`);
+                window.currentExerciseSlotIndex = idx;
+                const input = document.getElementById('exerciseSearch');
+                if (input) input.value = initialValue;
+                focusExerciseSearchInput();
+                scheduleExerciseSearch(idx, { query: initialValue, immediate: true });
+                }
 
-          function openExerciseDetailsFromSearch(event, resultIdx){
-            if (event) event.stopPropagation();
-            const result = currentExerciseSearchResults[resultIdx];
-            if (!result) return;
-            py('py_open_exercise_details', String(result.id != null ? result.id : result.exercise_id), 'detail');
-          }
+                function openExerciseDetailsFromSearch(event, resultIdx){
+                if (event) event.stopPropagation();
+                const result = currentExerciseSearchResults[resultIdx];
+                if (!result) return;
+                py('py_open_exercise_details', String(result.id != null ? result.id : result.exercise_id), 'detail');
+                }
 
-          function openExerciseDetailsById(idx, initialTab){
-            const ex = appState.workout.exercises[idx];
-            if (!ex || !ex.exercise_id) return;
-            py('py_open_exercise_details', String(ex.exercise_id), initialTab || 'detail');
-          }
+                function openExerciseDetailsById(idx, initialTab){
+                const ex = appState.workout.exercises[idx];
+                if (!ex || !ex.exercise_id) return;
+                py('py_open_exercise_details', String(ex.exercise_id), initialTab || 'detail');
+                }
 
-          function copyPreviousSetValues(idx){
-            const ex = appState.workout.exercises[idx];
-            const prev = ex && ex.previous_session;
-            const prevSets = prev && Array.isArray(prev.sets) ? prev.sets : [];
-            if (!ex || !prevSets.length) return;
-            ex.sets.forEach((setObj, i) => {
-              if (setObj.performed || setObj.locked) return;
-              const src = prevSets[Math.min(i, prevSets.length - 1)] || prevSets[0];
-              if (!src) return;
-              setObj.weight = src.uses_bodyweight ? 'BW' : (src.weight_value != null ? src.weight_value : setObj.weight);
-              setObj.reps = src.reps != null ? src.reps : setObj.reps;
-            });
-            syncExerciseMode(ex);
-            renderApp();
-            persistDraftSoon();
-          }
+                function copyPreviousSetValues(idx){
+                const ex = appState.workout.exercises[idx];
+                const prev = ex && ex.previous_session;
+                const prevSets = prev && Array.isArray(prev.sets) ? prev.sets : [];
+                if (!ex || !prevSets.length) return;
+                ex.sets.forEach((setObj, i) => {
+                if (setObj.performed || setObj.locked) return;
+                const src = prevSets[Math.min(i, prevSets.length - 1)] || prevSets[0];
+                if (!src) return;
+                setObj.weight = src.uses_bodyweight ? 'BW' : (src.weight_value != null ? src.weight_value : setObj.weight);
+                setObj.reps = src.reps != null ? src.reps : setObj.reps;
+                });
+                syncExerciseMode(ex);
+                renderApp();
+                persistDraftSoon();
+                }
 
-          async function setExerciseMode(idx, mode){
-            const ex = appState.workout.exercises[idx];
-            const preserved = cloneJson(ex);
-            preserved.set_mode = mode;
-            if (mode === 'myo_sets') {
-              preserved.sets.forEach((setObj, setIdx) => {
+                async function setExerciseMode(idx, mode){
+                const ex = appState.workout.exercises[idx];
+                const preserved = cloneJson(ex);
+                preserved.set_mode = mode;
+                if (mode === 'myo_sets') {
+                preserved.sets.forEach((setObj, setIdx) => {
                 setObj.locked = false;
                 if (setIdx > 0) {
-                  if (!setObj.performed) {
-                    setObj.weight = preserved.sets[0] ? preserved.sets[0].weight : setObj.weight;
-                    setObj.reps = 5;
-                  }
+                if (!setObj.performed) {
+                setObj.weight = preserved.sets[0] ? preserved.sets[0].weight : setObj.weight;
+                setObj.reps = 5;
                 }
-              });
-            } else if (mode === 'myo_rep_match') {
-              preserved.sets.forEach((setObj, setIdx) => {
+                }
+                });
+                } else if (mode === 'myo_rep_match') {
+                preserved.sets.forEach((setObj, setIdx) => {
                 setObj.locked = setIdx > 0;
                 if (setIdx > 0 && !setObj.performed) {
-                  setObj.weight = preserved.sets[0] ? preserved.sets[0].weight : setObj.weight;
-                  setObj.reps = preserved.sets[0] ? preserved.sets[0].reps : setObj.reps;
+                setObj.weight = preserved.sets[0] ? preserved.sets[0].weight : setObj.weight;
+                setObj.reps = preserved.sets[0] ? preserved.sets[0].reps : setObj.reps;
                 }
-              });
-            } else {
-              preserved.sets.forEach(setObj => setObj.locked = false);
-            }
-            const payload = await py('py_set_slot_mode', ex.slot_number, mode);
-            appState.workout = payload;
-            const nextExercise = (appState.workout?.exercises || []).find(item => String(item.slot_number) === String(ex.slot_number));
-            mergePreservedSetState(preserved, nextExercise);
-            syncExerciseMode(nextExercise);
-            renderApp();
-            persistDraftSoon();
-          }
+                });
+                } else {
+                preserved.sets.forEach(setObj => setObj.locked = false);
+                }
+                const payload = await py('py_set_slot_mode', ex.slot_number, mode);
+                appState.workout = payload;
+                const nextExercise = (appState.workout?.exercises || []).find(item => String(item.slot_number) === String(ex.slot_number));
+                mergePreservedSetState(preserved, nextExercise);
+                syncExerciseMode(nextExercise);
+                renderApp();
+                persistDraftSoon();
+                }
 
-          async function pickExerciseResult(idx, resultIdx){
-            const result = currentExerciseSearchResults[resultIdx];
-            if (!result) return;
-            const previousExercise = cloneJson(appState.workout.exercises[idx] || {});
-            const slot = previousExercise.slot_number;
-            const payload = await py('py_assign_slot_exercise', slot, String(result.id != null ? result.id : result.exercise_id));
-            appState.workout = payload;
-            const nextExercise = (appState.workout?.exercises || []).find(ex => String(ex.slot_number) === String(slot)) || (appState.workout?.exercises || [])[idx];
-            mergePreservedSetState(previousExercise, nextExercise);
-            closeModal();
-            renderApp();
-            persistDraftSoon(20);
-            queueAutoCompleteCheck();
-          }
+                async function pickExerciseResult(idx, resultIdx){
+                const result = currentExerciseSearchResults[resultIdx];
+                if (!result) return;
+                const previousExercise = cloneJson(appState.workout.exercises[idx] || {});
+                const slot = previousExercise.slot_number;
+                const payload = await py('py_assign_slot_exercise', slot, String(result.id != null ? result.id : result.exercise_id));
+                appState.workout = payload;
+                const nextExercise = (appState.workout?.exercises || []).find(ex => String(ex.slot_number) === String(slot)) || (appState.workout?.exercises || [])[idx];
+                mergePreservedSetState(previousExercise, nextExercise);
+                closeModal();
+                renderApp();
+                persistDraftSoon(20);
+                queueAutoCompleteCheck();
+                }
 
-          async function openHistoryModal(){
-            await py('py_open_history_modal', null, '');
-          }
-          async function openExerciseHistory(idx){
-            const ex = appState.workout.exercises[idx];
-            if (!ex || !ex.exercise_id) return;
-            await py('py_open_history_modal', String(ex.exercise_id), ex.muscle_group || '');
-          }
+                async function openHistoryModal(){
+                await py('py_open_history_modal', null, '');
+                }
+                async function openExerciseHistory(idx){
+                const ex = appState.workout.exercises[idx];
+                if (!ex || !ex.exercise_id) return;
+                await py('py_open_history_modal', String(ex.exercise_id), ex.muscle_group || '');
+                }
 
-          function openProgressionModal(){
-            const value = appState.workout?.progression_settings?.progress_every_n_qualifying_workouts || 3;
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Progression Settings</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">Progress after this many qualifying workouts.</div><div style="margin-top:10px"><select id="progressionSetting" class="select">${[1,2,3,4,5,6].map(v=>`<option value="${v}" ${v===value?'selected':''}>${v}</option>`).join('')}</select></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Close</button><button class="btn" onclick="saveProgressionSetting()">Save</button></div></div>`);
-          }
-          async function saveProgressionSetting(){ const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); persistDraftSoon(20); }
+                function openProgressionModal(){
+                const value = appState.workout?.progression_settings?.progress_every_n_qualifying_workouts || 3;
+                showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Progression Settings</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">Progress after this many qualifying workouts.</div><div style="margin-top:10px"><select id="progressionSetting" class="select">${[1,2,3,4,5,6].map(v=>`<option value="${v}" ${v===value?'selected':''}>${v}</option>`).join('')}</select></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Close</button><button class="btn" onclick="saveProgressionSetting()">Save</button></div></div>`);
+                }
+                async function saveProgressionSetting(){ const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); persistDraftSoon(20); }
 
-          function assignedExercises(){ return (appState.workout?.exercises || []).filter(e => !e.is_unassigned && e.exercise_id); }
-          function allDoneOrSkipped(){ const arr=assignedExercises(); return arr.length && arr.every(ex => ex.status==='skipped' || (ex.sets||[]).every(s=>s.performed)); }
-          function hasSkips(){ return assignedExercises().some(ex => ex.status==='skipped'); }
-          function maybeAutoComplete(){ if(autoPrompted) return; if(allDoneOrSkipped()){ autoPrompted=true; showAutoCompleteModal(); } }
+                function assignedExercises(){ return (appState.workout?.exercises || []).filter(e => !e.is_unassigned && e.exercise_id); }
+                function allDoneOrSkipped(){ const arr=assignedExercises(); return arr.length && arr.every(ex => ex.status==='skipped' || (ex.sets||[]).every(s=>s.performed)); }
+                function hasSkips(){ return assignedExercises().some(ex => ex.status==='skipped'); }
+                function maybeAutoComplete(){ if(autoPrompted) return; if(allDoneOrSkipped()){ autoPrompted=true; showAutoCompleteModal(); } }
 
-          function attemptWorkoutComplete(){ suppressAutoComplete=false; if(allDoneOrSkipped()){ submitWorkout(); return; } showUnfinishedModal(false); }
-          function showAutoCompleteModal(){ showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Workout complete?</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">All sets finished${hasSkips() ? ' or skipped' : ''}. Want to log the workout?</div><div class="modal-actions"><button class="btn" onclick="closeModal(); submitWorkout()">Complete Workout</button></div></div>`); }
-          function showUnfinishedModal(setsAutoCompleted){
-            const title = setsAutoCompleted ? 'Ready to complete' : 'Some sets are unfinished';
-            const body = setsAutoCompleted ? 'Remaining sets auto-completed.' : 'You can go back, complete anyway, or finish the remaining sets automatically.';
-            const split = setsAutoCompleted ? `<div class="modal-split"><button class="btn secondary" onclick="closeModal()">Go Back</button><button class="btn subtle" onclick="closeModal(); submitWorkout()">Complete Workout</button></div>` : `<div class="modal-split"><button class="btn secondary" onclick="closeModal()">Go Back</button><button class="btn subtle" onclick="closeModal(); submitWorkout()">Complete Anyway</button></div><div class="center-row"><button class="btn subtle" onclick="finishRemainingSets()">Finish Remaining Sets</button></div>`;
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(body)}</div>${split}</div>`);
-          }
-          function finishRemainingSets(){
-            (appState.workout?.exercises || []).forEach(ex => {
-              if(ex.is_unassigned || ex.status==='skipped') return;
-              (ex.sets||[]).forEach(s => { if(!s.performed){ s.performed=true; s.auto_completed=true; }});
-              ex.status='completed'; ex.collapsed=true;
-            });
-            autoPrompted = true; suppressAutoComplete = true; renderApp(); persistDraftSoon(); showUnfinishedModal(true);
-          }
+                function attemptWorkoutComplete(){ suppressAutoComplete=false; if(allDoneOrSkipped()){ submitWorkout(); return; } showUnfinishedModal(false); }
+                function showAutoCompleteModal(){ showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Workout complete?</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">All sets finished${hasSkips() ? ' or skipped' : ''}. Want to log the workout?</div><div class="modal-actions"><button class="btn" onclick="closeModal(); submitWorkout()">Complete Workout</button></div></div>`); }
+                function showUnfinishedModal(setsAutoCompleted){
+                const title = setsAutoCompleted ? 'Ready to complete' : 'Some sets are unfinished';
+                const body = setsAutoCompleted ? 'Remaining sets auto-completed.' : 'You can go back, complete anyway, or finish the remaining sets automatically.';
+                const split = setsAutoCompleted ? `<div class="modal-split"><button class="btn secondary" onclick="closeModal()">Go Back</button><button class="btn subtle" onclick="closeModal(); submitWorkout()">Complete Workout</button></div>` : `<div class="modal-split"><button class="btn secondary" onclick="closeModal()">Go Back</button><button class="btn subtle" onclick="closeModal(); submitWorkout()">Complete Anyway</button></div><div class="center-row"><button class="btn subtle" onclick="finishRemainingSets()">Finish Remaining Sets</button></div>`;
+                showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(body)}</div>${split}</div>`);
+                }
+                function finishRemainingSets(){
+                (appState.workout?.exercises || []).forEach(ex => {
+                if(ex.is_unassigned || ex.status==='skipped') return;
+                (ex.sets||[]).forEach(s => { if(!s.performed){ s.performed=true; s.auto_completed=true; }});
+                ex.status='completed'; ex.collapsed=true;
+                });
+                autoPrompted = true; suppressAutoComplete = true; renderApp(); persistDraftSoon(); showUnfinishedModal(true);
+                }
 
-          async function submitWorkout(){
-            closeModal();
-            clearTimeout(draftSaveTimer);
-            persistDraftNow();
-            const completedDayCode = appState.workout.current_day;
-            const payload = { day_code: completedDayCode, exercises: [] };
-            (appState.workout.exercises || []).forEach(ex => {
-              if(ex.is_unassigned || !ex.exercise_id) return;
-              payload.exercises.push({
+                async function submitWorkout(){
+                closeModal();
+                clearTimeout(draftSaveTimer);
+                persistDraftNow();
+                const completedDayCode = appState.workout.current_day;
+                const payload = { day_code: completedDayCode, exercises: [] };
+                (appState.workout.exercises || []).forEach(ex => {
+                if(ex.is_unassigned || !ex.exercise_id) return;
+                payload.exercises.push({
                 slot_number: ex.slot_number,
                 exercise_id: ex.exercise_id,
                 uses_bodyweight: ex.uses_bodyweight,
@@ -962,29 +966,29 @@ container:
                 status: ex.status,
                 set_mode: ex.set_mode || 'standard',
                 sets: ex.sets || []
-              });
-            });
-            const result = await py('py_submit_workout', payload);
-            clearDraftStorage(completedDayCode);
-            return result;
-          }
+                });
+                });
+                const result = await py('py_submit_workout', payload);
+                clearDraftStorage(completedDayCode);
+                return result;
+                }
 
-          function openCompletionModal(){
-            const s = appState.completionSummary || {};
-            const tiles = renderTileRow(s.tile_states || []);
-            const volume = (s.weekly_volume && Array.isArray(s.weekly_volume.muscles)) ? s.weekly_volume.muscles : [];
-            const volumeHtml = volume.length ? `<div class="summary-volume"><div style="font-weight:700;margin-bottom:6px">Week so far volume</div>${volume.map(row => `<div class="volume-row"><span>${escapeHtml(row.name)}</span><span>${escapeHtml(row.weighted_sets)} sets</span></div>`).join('')}</div>` : '';
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div style="font-weight:700;margin-bottom:8px">Oslocon Workout!</div><div class="muted" style="margin-bottom:8px">${escapeHtml(s.date || '')}</div>${tiles}${volumeHtml}<div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div></div>`);
-          }
-          function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
+                function openCompletionModal(){
+                const s = appState.completionSummary || {};
+                const tiles = renderTileRow(s.tile_states || []);
+                const volume = (s.weekly_volume && Array.isArray(s.weekly_volume.muscles)) ? s.weekly_volume.muscles : [];
+                const volumeHtml = volume.length ? `<div class="summary-volume"><div style="font-weight:700;margin-bottom:6px">Week so far volume</div>${volume.map(row => `<div class="volume-row"><span>${escapeHtml(row.name)}</span><span>${escapeHtml(row.weighted_sets)} sets</span></div>`).join('')}</div>` : '';
+                showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div style="font-weight:700;margin-bottom:8px">Oslocon Workout!</div><div class="muted" style="margin-bottom:8px">${escapeHtml(s.date || '')}</div>${tiles}${volumeHtml}<div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div></div>`);
+                }
+                function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
 
-          function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
-          function closeModal(){ clearTimeout(exerciseSearchTimer); latestExerciseSearchToken = ++exerciseSearchToken; currentExerciseSearchResults = []; const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
-          function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
+                function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
+                function closeModal(){ clearTimeout(exerciseSearchTimer); latestExerciseSearchToken = ++exerciseSearchToken; currentExerciseSearchResults = []; const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
+                function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
-          function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
-          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
-        </script>
+                function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
+                function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
+                </script>
       </div>
   type: HtmlTemplate
 is_package: true

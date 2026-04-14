@@ -3,6 +3,7 @@ from anvil import *
 import anvil.server
 
 BG = "#141c26"
+SURFACE = "#10151d"
 TEXT = "#f3f6fb"
 MUTED = "#97a5b7"
 BORDER = "#283548"
@@ -29,25 +30,44 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
   def _close(self, **event_args):
     self.raise_event("x-close-alert")
 
-  def _build_ui(self):
+  def _clear_self(self):
     try:
       self.clear()
     except Exception:
       pass
-    self.background = "#10151d"
+
+  def _small_label(self, text, foreground=MUTED, bold=False):
+    return Label(text=text, foreground=foreground, bold=bold, spacing_above="none", spacing_below="none")
+
+  def _card(self):
+    card = ColumnPanel(background=SURFACE, foreground=TEXT, spacing_above="small", spacing_below="none")
+    try:
+      card.border = f"1px solid {BORDER}"
+    except Exception:
+      pass
+    return card
+
+  def _section(self, title):
+    self.add_component(Label(text=title, bold=True, foreground=TEXT, spacing_above="small", spacing_below="none"))
+
+  def _build_ui(self):
+    self._clear_self()
+    self.background = BG
     self.foreground = TEXT
-    self.root = ColumnPanel()
-    self.root.background = BG
-    self.root.foreground = TEXT
-    self.add_component(self.root)
+    try:
+      self.border = None
+    except Exception:
+      pass
 
     head = FlowPanel(align="justify", spacing="small")
+    head.spacing_above = "none"
+    head.spacing_below = "none"
     title = self.detail.get("name") or "Exercise Details"
     head.add_component(Label(text=title, bold=True, font_size=18, foreground=TEXT, spacing_above="none", spacing_below="none"))
     close = Button(text="✕", role="button-secondary")
     close.set_event_handler("click", self._close)
     head.add_component(close)
-    self.root.add_component(head)
+    self.add_component(head)
 
     meta = []
     if self.detail.get("primary_muscles"):
@@ -55,17 +75,17 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
     if self.detail.get("equipment"):
       meta.append(self.detail.get("equipment"))
     if meta:
-      self.root.add_component(Label(text=" • ".join(meta), foreground=MUTED, spacing_above="none", spacing_below="small"))
+      self.add_component(self._small_label(" • ".join(meta)))
 
     tabs = FlowPanel(spacing="small")
+    tabs.spacing_above = "small"
+    tabs.spacing_below = "small"
     for key, label in (("detail", "Detail"), ("history", "History")):
       btn = Button(text=label, role="button-primary" if self.active_tab == key else "button-secondary")
       btn.set_event_handler("click", lambda key=key, **e: self._switch_tab(key))
       tabs.add_component(btn)
-    self.root.add_component(tabs)
+    self.add_component(tabs)
 
-    self.content = ColumnPanel()
-    self.root.add_component(self.content, full_width_row=True)
     if self.active_tab == "history":
       self._render_history_tab()
     else:
@@ -75,28 +95,16 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
     self.active_tab = tab_name
     self._build_ui()
 
-  def _section(self, title):
-    self.content.add_component(Label(text=title, bold=True, foreground=TEXT, spacing_above="small", spacing_below="none"))
-
-  def _card(self):
-    card = ColumnPanel()
-    card.background = BG
-    card.foreground = TEXT
-    try:
-      card.border = f"1px solid {BORDER}"
-    except Exception:
-      pass
-    return card
-
   def _render_detail_tab(self):
     images = self.detail.get("images") or []
+    self._section("Images")
     if images:
       current = images[self.image_index % len(images)]
       img = Image(source=current.get("media"), height=220)
-      self.content.add_component(img, full_width_row=True)
+      self.add_component(img, full_width_row=True)
       caption = current.get("label") or current.get("source_filename") or ""
       if caption:
-        self.content.add_component(Label(text=caption, foreground=MUTED, spacing_above="none", spacing_below="none"))
+        self.add_component(self._small_label(caption))
       if len(images) > 1:
         controls = FlowPanel(align="justify", spacing="small")
         prev_btn = Button(text="←", role="button-secondary")
@@ -104,21 +112,21 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
         prev_btn.set_event_handler("click", lambda **e: self._step_image(-1))
         next_btn.set_event_handler("click", lambda **e: self._step_image(1))
         controls.add_component(prev_btn)
-        controls.add_component(Label(text=f"{self.image_index + 1} / {len(images)}", foreground=MUTED, spacing_above="none", spacing_below="none"))
+        controls.add_component(self._small_label(f"{self.image_index + 1} / {len(images)}"))
         controls.add_component(next_btn)
-        self.content.add_component(controls)
+        self.add_component(controls)
     else:
-      self.content.add_component(Label(text="No exercise images yet.", foreground=MUTED, spacing_above="small", spacing_below="none"))
+      self.add_component(self._small_label("No exercise images yet."))
 
     self._section("Instructions")
     instructions = self.detail.get("instructions") or []
     if isinstance(instructions, str):
-      instructions = [instructions]
+      instructions = [line.strip() for line in instructions.split("\n") if line.strip()] or [instructions]
     if instructions:
       for line in instructions:
-        self.content.add_component(Label(text=f"• {line}", foreground=MUTED, spacing_above="none", spacing_below="none"))
+        self.add_component(self._small_label(f"• {line}"))
     else:
-      self.content.add_component(Label(text="No instructions available.", foreground=MUTED, spacing_above="none", spacing_below="none"))
+      self.add_component(self._small_label("No instructions available."))
 
     self._section("Metadata")
     fields = [
@@ -132,10 +140,12 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
       ("Secondary muscles", ", ".join(self.detail.get("secondary_muscles") or []) or "—"),
     ]
     for label, value in fields:
-      self.content.add_component(Label(text=f"{label}: {value}", foreground=MUTED, spacing_above="none", spacing_below="none"))
+      self.add_component(self._small_label(f"{label}: {value}"))
 
   def _render_history_tab(self):
     filters = FlowPanel(spacing="small")
+    filters.spacing_above = "small"
+    filters.spacing_below = "small"
     options = [
       ("all_history", "All history"),
       ("strongest", "Strongest"),
@@ -147,11 +157,11 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
       btn.enabled = not (key == "current_day" and not self.current_day_code)
       btn.set_event_handler("click", lambda key=key, **e: self._set_history_filter(key))
       filters.add_component(btn)
-    self.content.add_component(filters)
+    self.add_component(filters)
 
     items = self._filtered_history_items()
     if not items:
-      self.content.add_component(Label(text="No history yet.", foreground=MUTED, spacing_above="small", spacing_below="none"))
+      self.add_component(self._small_label("No history yet."))
       return
 
     for item in items:
@@ -159,20 +169,18 @@ class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
       header = item.get("completed_at_display") or ""
       day = item.get("day_code") or ""
       title_bits = [x for x in [header, f"Day {day}" if day else ""] if x]
-      card.add_component(Label(text=" • ".join(title_bits), bold=True, foreground=TEXT, spacing_above="none", spacing_below="none"))
+      if title_bits:
+        card.add_component(Label(text=" • ".join(title_bits), bold=True, foreground=TEXT, spacing_above="none", spacing_below="none"))
       mode = MODE_LABELS.get(item.get("set_mode") or "standard", "Standard Sets")
-      card.add_component(Label(text=mode, foreground=MUTED, spacing_above="none", spacing_below="none"))
+      card.add_component(self._small_label(mode))
       for idx, set_info in enumerate(item.get("sets") or [], start=1):
         weight = set_info.get("weight") or "—"
         reps = set_info.get("reps") or "—"
         performed = "✓" if set_info.get("performed") else "○"
-        card.add_component(Label(text=f"{performed} Set {idx}: {weight} × {reps}", foreground=MUTED, spacing_above="none", spacing_below="none"))
-      metrics = []
+        card.add_component(self._small_label(f"{performed} Set {idx}: {weight} × {reps}"))
       if item.get("best_e1rm"):
-        metrics.append(f"Estimated one rep max: {item['best_e1rm']}")
-      if metrics:
-        card.add_component(Label(text=" • ".join(metrics), foreground=MUTED, spacing_above="none", spacing_below="none"))
-      self.content.add_component(card, full_width_row=True)
+        card.add_component(self._small_label(f"Estimated one rep max: {item['best_e1rm']}"))
+      self.add_component(card, full_width_row=True)
 
   def _set_history_filter(self, filter_key):
     self.active_history_filter = filter_key
