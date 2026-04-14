@@ -1,5 +1,5 @@
 from exercise_service import get_canonical_exercise_by_name
-from table_helpers import get_active_days, get_day_by_code, now
+from table_helpers import get_active_days, get_day_by_code, now, safe_get
 from anvil.tables import app_tables
 
 
@@ -23,6 +23,20 @@ PRESET_ROUTINE = {
 }
 
 
+def _add_slot_row(**kwargs):
+  try:
+    return app_tables.workout_slots.add_row(**kwargs)
+  except Exception:
+    fallback = dict(kwargs)
+    fallback.pop("set_mode", None)
+    row = app_tables.workout_slots.add_row(**fallback)
+    try:
+      row["set_mode"] = kwargs.get("set_mode", "standard")
+    except Exception:
+      pass
+    return row
+
+
 def ensure_preset_routine(user):
   existing = get_active_days(user)
   if existing:
@@ -43,7 +57,7 @@ def ensure_preset_routine(user):
 
     for idx, slot_def in enumerate(slot_defs, start=1):
       exercise = get_canonical_exercise_by_name(slot_def["legacy_name"])
-      app_tables.workout_slots.add_row(
+      _add_slot_row(
         user=user,
         workout_day=day_row,
         slot_number=idx,
@@ -55,6 +69,7 @@ def ensure_preset_routine(user):
         default_sets=slot_def["sets"],
         uses_bodyweight=slot_def["uses_bodyweight"],
         notes="",
+        set_mode="standard",
         created_at=now(),
         updated_at=now(),
         archived_at=None,
@@ -66,9 +81,9 @@ def ensure_preset_routine(user):
 
 def add_empty_slot(user, workout_day):
   slots = [r for r in app_tables.workout_slots.search(user=user, workout_day=workout_day, is_active=True)]
-  next_slot = max([s["slot_number"] or 0 for s in slots], default=0) + 1
-  next_display = max([s["display_order"] or 0 for s in slots], default=0) + 1
-  return app_tables.workout_slots.add_row(
+  next_slot = max([safe_get(s, "slot_number", 0) or 0 for s in slots], default=0) + 1
+  next_display = max([safe_get(s, "display_order", 0) or 0 for s in slots], default=0) + 1
+  return _add_slot_row(
     user=user,
     workout_day=workout_day,
     slot_number=next_slot,
@@ -80,6 +95,7 @@ def add_empty_slot(user, workout_day):
     default_sets=5,
     uses_bodyweight=False,
     notes="",
+    set_mode="standard",
     created_at=now(),
     updated_at=now(),
     archived_at=None,
@@ -88,7 +104,7 @@ def add_empty_slot(user, workout_day):
 
 def add_workout_day(user):
   days = get_active_days(user)
-  existing_codes = {d["day_code"] for d in days}
+  existing_codes = {safe_get(d, "day_code", "") for d in days}
   code = "A"
   for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
     if c not in existing_codes:
@@ -129,8 +145,8 @@ def remove_workout_day(user, day_code):
 
 def move_slot(user, workout_day, slot_number, direction):
   slots = [r for r in app_tables.workout_slots.search(user=user, workout_day=workout_day, is_active=True)]
-  slots.sort(key=lambda r: (r["display_order"] or 9999, r["slot_number"] or 9999))
-  index = next((i for i, s in enumerate(slots) if s["slot_number"] == slot_number), None)
+  slots.sort(key=lambda r: (safe_get(r, "display_order", 9999), safe_get(r, "slot_number", 9999)))
+  index = next((i for i, s in enumerate(slots) if safe_get(s, "slot_number", None) == slot_number), None)
   if index is None:
     raise Exception("Slot not found.")
   swap_index = index - 1 if direction == "up" else index + 1
@@ -138,8 +154,8 @@ def move_slot(user, workout_day, slot_number, direction):
     return
   a = slots[index]
   b = slots[swap_index]
-  a_order = a["display_order"]
-  b_order = b["display_order"]
+  a_order = safe_get(a, "display_order", None)
+  b_order = safe_get(b, "display_order", None)
   a["display_order"] = b_order
   b["display_order"] = a_order
 
@@ -150,6 +166,6 @@ def remove_slot(user, workout_day, slot_number):
     raise Exception("Slot not found.")
   slot.update(is_active=False, archived_at=now(), updated_at=now())
   remaining = [r for r in app_tables.workout_slots.search(user=user, workout_day=workout_day, is_active=True)]
-  remaining.sort(key=lambda r: (r["display_order"] or 9999, r["slot_number"] or 9999))
+  remaining.sort(key=lambda r: (safe_get(r, "display_order", 9999), safe_get(r, "slot_number", 9999)))
   for idx, row in enumerate(remaining, start=1):
     row["display_order"] = idx
