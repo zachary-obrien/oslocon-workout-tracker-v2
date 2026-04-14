@@ -34,7 +34,6 @@ container:
           .select{height:26px;padding:0 6px;font-size:13px}
           .hero-topline{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
           .hero-name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
           .hero-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
           .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:visible;isolation:isolate}
           .exercise-card.done{border-color:rgba(31,163,106,.34);background:linear-gradient(180deg, rgba(31,163,106,.10), rgba(31,163,106,.03)), var(--card)}
@@ -81,7 +80,6 @@ container:
             <div class="card hero-card">
               <div class="hero-topline" style="margin-bottom:0;position:relative">
                 <div class="title hero-name" id="who"></div>
-                <div class="muted hero-day" id="dayHelper"></div>
                 <div class="hero-actions">
                   <select id="daySelector" class="day-select" onchange="loadDisplayedDay(this.value)"></select>
                   <div class="menu-wrap">
@@ -116,6 +114,11 @@ container:
           let appState = {activeEmail:'', registrationRequired:false, user:{}, workout:null, completionSummary:null};
           let suppressAutoComplete = false;
           let autoPrompted = false;
+          let historyModalState = null;
+          let exerciseSearchTimer = null;
+          let exerciseSearchToken = 0;
+          let latestExerciseSearchToken = 0;
+          let currentExerciseSearchResults = [];
 
           function py(method, ...args){
             return anvil.call(document.getElementById('app-root'), method, ...args);
@@ -174,7 +177,6 @@ container:
             document.getElementById('subtitle').textContent = `Logged in as ${displayName}${appState.activeEmail ? ' • ' + appState.activeEmail : ''}`;
             document.getElementById('who').textContent = displayName;
             renderDaySelector();
-            renderDayHelper();
             renderHeroProgress();
             renderExercises();
           }
@@ -187,12 +189,6 @@ container:
             document.getElementById('remove-day-btn').style.display = workout.can_remove_current_day ? 'block' : 'none';
           }
 
-          function renderDayHelper(){
-            const w = appState.workout || {};
-            const current = w.current_day || '';
-            const next = w.next_scheduled_day || current;
-            document.getElementById('dayHelper').textContent = current===next ? `Day ${current}` : `Day ${current} · Next ${next}`;
-          }
 
           function renderHeroProgress(){
             const hero = document.getElementById('heroProgress');
@@ -431,50 +427,109 @@ container:
           }
           function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap') && !e.target.closest('#menuPortal')) closeMenus(); }
 
+          function focusExerciseSearchInput(){
+            setTimeout(() => {
+              const input = document.getElementById('exerciseSearch');
+              if (!input) return;
+              try {
+                input.focus();
+                input.select();
+              } catch (err) {}
+            }, 0);
+          }
+
+          function renderExerciseSearchResults(results, idx){
+            const host = document.getElementById('exerciseSearchResults');
+            if (!host) return;
+            currentExerciseSearchResults = results || [];
+            if (!currentExerciseSearchResults.length){
+              host.innerHTML = '<div class="muted">No matching exercises.</div>';
+              return;
+            }
+            host.innerHTML = currentExerciseSearchResults.map((r, resultIdx) => `
+              <button class="card" style="padding:8px;cursor:pointer;width:100%;text-align:left" onclick="pickExerciseResult(${idx}, ${resultIdx})">
+                <div style="font-weight:700">${escapeHtml(r.name)}</div>
+                <div class="muted">${escapeHtml(titleCaseWords(r.muscle_group || ''))}</div>
+              </button>
+            `).join('');
+          }
+
+          function scheduleExerciseSearch(idx, options){
+            const opts = options || {};
+            const input = document.getElementById('exerciseSearch');
+            if (!input) return;
+            const query = typeof opts.query === 'string' ? opts.query : input.value;
+            clearTimeout(exerciseSearchTimer);
+            const delay = opts.immediate ? 0 : 180;
+            const token = ++exerciseSearchToken;
+            latestExerciseSearchToken = token;
+            exerciseSearchTimer = setTimeout(() => performExerciseSearch(idx, query, token), delay);
+          }
+
+          async function performExerciseSearch(idx, query, token){
+            const host = document.getElementById('exerciseSearchResults');
+            if (host) host.innerHTML = '<div class="muted">Searching…</div>';
+            let results = [];
+            try {
+              results = await py('py_search_exercises', query || '');
+            } catch (err) {
+              if (token !== latestExerciseSearchToken) return;
+              if (host) host.innerHTML = '<div class="muted">Search failed.</div>';
+              return;
+            }
+            if (token !== latestExerciseSearchToken) return;
+            renderExerciseSearchResults(results, idx);
+          }
+
           async function openChangeExercise(idx){
             const current = appState.workout.exercises[idx];
             showModal(`
               <div class="modal-card">
                 <div class="modal-head"><div class="modal-title">Change Exercise</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div>
-                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="searchExercises(${idx})" />
+                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="scheduleExerciseSearch(${idx})" />
                 <div id="exerciseSearchResults" style="margin-top:10px"></div>
               </div>`);
             window.currentExerciseSlotIndex = idx;
-            await searchExercises(idx, current.exercise_label || '');
+            const input = document.getElementById('exerciseSearch');
+            if (input) input.value = current.exercise_label || '';
+            focusExerciseSearchInput();
+            scheduleExerciseSearch(idx, { query: current.exercise_label || '', immediate: true });
           }
 
-          async function searchExercises(idx, initial){
-            const query = typeof initial === 'string' && initial ? initial : document.getElementById('exerciseSearch').value;
-            const results = await py('py_search_exercises', query || '');
-            const host = document.getElementById('exerciseSearchResults');
-            host.innerHTML = (results || []).map(r => `<div class="card" style="padding:8px;cursor:pointer" onclick="pickExercise(${idx}, ${r.id})"><div style="font-weight:700">${escapeHtml(r.name)}</div><div class="muted">${escapeHtml(r.muscle_group || '')}</div></div>`).join('');
-          }
-
-          async function pickExercise(idx, exerciseId){
+          async function pickExerciseResult(idx, resultIdx){
+            const result = currentExerciseSearchResults[resultIdx];
+            if (!result) return;
             const slot = appState.workout.exercises[idx].slot_number;
-            const payload = await py('py_assign_slot_exercise', slot, exerciseId);
+            const payload = await py('py_assign_slot_exercise', slot, String(result.id));
             appState.workout = payload;
             closeModal();
             renderApp();
           }
 
+          async function loadHistoryItems(state){
+            if (!state) return [];
+            if (state.type === 'exercise') return await py('py_get_exercise_history', state.exerciseId);
+            return await py('py_get_recent_history');
+          }
+
           async function openHistoryModal(){
-            const items = await py('py_get_recent_history');
-            showHistory(items, 'Workout History');
+            historyModalState = {type:'recent', title:'Workout History'};
+            const items = await loadHistoryItems(historyModalState);
+            showHistory(items, historyModalState.title);
           }
           async function openExerciseHistory(idx){
             const ex = appState.workout.exercises[idx];
-            const items = await py('py_get_exercise_history', ex.exercise_id);
-            showHistory(items, ex.exercise_label || 'Exercise History');
+            historyModalState = {type:'exercise', exerciseId: ex.exercise_id, title: ex.exercise_label || 'Exercise History'};
+            const items = await loadHistoryItems(historyModalState);
+            showHistory(items, historyModalState.title);
           }
           function showHistory(items, title){
             const cards = (items || []).map(item => {
               const dateText = item.completed_at_display || formatLocalDateTime(item.completed_at || item.timestamp_ms || '');
-              const status = item.status || item.completion_bucket || '';
               const share = item.share_text || '';
               const copyDisabled = share ? '' : 'disabled';
               const deleteButton = item.session_id ? `<button class="btn subtle" onclick="deleteHistorySession(this.dataset.sessionId)" data-session-id="${escapeAttr(item.session_id)}">Delete</button>` : '';
-              return `<div class="card" style="padding:8px"><div class="history-card-top"><div><div class="history-card-title">${escapeHtml(item.day_code ? 'Day ' + item.day_code : (item.exercise_name || 'Workout'))}</div><div class="muted history-card-date">${escapeHtml(dateText)}</div>${status ? `<div class="muted">${escapeHtml(status)}</div>` : ''}</div></div>${share ? `<div class="history-share muted">${escapeHtml(share)}</div>` : ''}<div class="modal-actions"><button class="btn secondary" ${copyDisabled} onclick="copyHistoryText(this.dataset.shareText)" data-share-text="${escapeAttr(share)}">Copy</button>${deleteButton}</div></div>`;
+              return `<div class="card" style="padding:8px"><div class="history-card-top"><div><div class="history-card-title">${escapeHtml(item.day_code ? 'Day ' + item.day_code : (item.exercise_name || 'Workout'))}</div><div class="muted history-card-date">${escapeHtml(dateText)}</div></div></div><div class="modal-actions"><button class="btn secondary" ${copyDisabled} onclick="copyHistoryText(this.dataset.shareText)" data-share-text="${escapeAttr(share)}">Copy</button>${deleteButton}</div></div>`;
             }).join('') || '<div class="muted">No history yet.</div>';
             showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div>${cards}</div></div>`);
           }
@@ -487,7 +542,10 @@ container:
               appState.workout = payload;
               renderApp();
             }
-            closeModal();
+            if (historyModalState){
+              const items = await loadHistoryItems(historyModalState);
+              showHistory(items, historyModalState.title);
+            }
           }
 
           function openProgressionModal(){
@@ -539,18 +597,20 @@ container:
           function openCompletionModal(){
             const s = appState.completionSummary || {};
             const tiles = (s.tile_states || []).map(t => `<span class="tile ${escapeHtml(t)}"></span>`).join('');
-            const share = escapeHtml(s.share_text || '');
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div class="muted" style="margin-bottom:8px">${escapeHtml(s.date || '')}</div><div class="tile-row">${tiles}</div><pre style="white-space:pre-wrap;margin:12px 0 0;font-family:inherit">${share}</pre><div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div></div>`);
-          }
-          function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
+            const shareLines = String(s.share_text || '').split(/\n+/).filter(Boolean);
+            const shareTitle = shareLines[0] || 'Oslocon Workout!';
+            const shareDate = s.date || shareLines[1] || '';
+              showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div class="history-card-title">${escapeHtml(shareTitle)}</div><div class="muted" style="margin:6px 0 8px">${escapeHtml(shareDate)}</div><div class="tile-row">${tiles}</div></div><div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div>`);
+              }
+              function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
 
-          function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
-          function closeModal(){ const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
-          function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
+              function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
+              function closeModal(){ historyModalState = null; clearTimeout(exerciseSearchTimer); latestExerciseSearchToken = ++exerciseSearchToken; currentExerciseSearchResults = []; const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
+              function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
-          function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
-          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
-        </script>
+              function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
+              function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
+              </script>
       </div>
   type: HtmlTemplate
 is_package: true

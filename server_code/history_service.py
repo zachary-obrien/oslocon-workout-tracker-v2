@@ -17,6 +17,24 @@ def _user_timezone(user):
   return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
 
 
+def _lookup_session_by_id(session_id):
+  candidates = [session_id]
+  if isinstance(session_id, str):
+    stripped = session_id.strip()
+    if stripped not in candidates:
+      candidates.append(stripped)
+    if stripped.isdigit():
+      candidates.append(int(stripped))
+  for candidate in candidates:
+    try:
+      session = app_tables.workout_sessions.get_by_id(candidate)
+    except Exception:
+      session = None
+    if session is not None:
+      return session
+  return None
+
+
 def _serialize_session_exercise(row, timezone_name="America/Chicago"):
   session = row["workout_session"]
   sets = get_sets_for_session_exercise(row)
@@ -200,7 +218,7 @@ def get_exercise_history(exercise_id):
 @anvil.server.callable
 def delete_history_session(session_id, selected_day_code=None):
   user = get_current_user()
-  session = app_tables.workout_sessions.get_by_id(session_id)
+  session = _lookup_session_by_id(session_id)
   if session is None or session["user"] != user:
     raise Exception("Workout history entry not found.")
 

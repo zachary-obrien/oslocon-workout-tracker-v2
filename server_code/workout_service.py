@@ -48,6 +48,24 @@ def _user_timezone(user):
   return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
 
 
+def _lookup_exercise_by_id(exercise_id):
+  candidates = [exercise_id]
+  if isinstance(exercise_id, str):
+    stripped = exercise_id.strip()
+    if stripped not in candidates:
+      candidates.append(stripped)
+    if stripped.isdigit():
+      candidates.append(int(stripped))
+  for candidate in candidates:
+    try:
+      exercise = app_tables.exercises.get_by_id(candidate)
+    except Exception:
+      exercise = None
+    if exercise is not None:
+      return exercise
+  return None
+
+
 def _serialize_slot(user, slot, day_slots):
   exercise = slot["exercise"]
   display_order_index = day_slots.index(slot)
@@ -201,7 +219,7 @@ def move_exercise_slot(day_code, slot_number, direction):
 def assign_slot_exercise(day_code, slot_number, exercise_id):
   user = get_current_user()
   _, slot = _get_slot_by_identifiers(user, day_code, slot_number)
-  exercise = app_tables.exercises.get_by_id(exercise_id)
+  exercise = _lookup_exercise_by_id(exercise_id)
   if exercise is None:
     raise Exception("Exercise not found.")
   slot.update(exercise=exercise, uses_bodyweight=bool(exercise["uses_bodyweight_default"]), updated_at=now())

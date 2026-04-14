@@ -33,11 +33,10 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       return
     if not confirm("Delete this workout history entry?", buttons=[("Delete", True), ("Cancel", False)]):
       return
-    payload = anvil.server.call("delete_history_session", session_id)
+    anvil.server.call("delete_history_session", session_id)
     self.history_items = [x for x in self.history_items if x.get("session_id") != session_id]
     self.clear()
     self._build_ui()
-    self.raise_event("x-history-deleted", payload=payload)
 
   def _build_ui(self):
     self.root = ColumnPanel(role="modal-card")
@@ -65,10 +64,6 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
 
       date_text = item.get("completed_at_display") or self._fmt(item.get("completed_at") or item.get("timestamp_ms"))
       card.add_component(Label(text=date_text, role="muted"))
-
-      status = item.get("status") or item.get("completion_bucket")
-      if status:
-        card.add_component(Label(text=f"Status: {status}", role="muted"))
 
       button_row = FlowPanel(gap="small")
       share = item.get("share_text") or ""
