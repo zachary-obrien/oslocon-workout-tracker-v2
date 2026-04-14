@@ -120,6 +120,10 @@ container:
           let activeHistoryTitle = 'Workout History';
           let exerciseSearchTimer = null;
           let exerciseSearchToken = 0;
+          let latestExerciseSearchToken = 0;
+          let currentExerciseSearchResults = [];
+          let draftSaveTimer = null;
+          let autoCompleteTimer = null;
 
           function py(method, ...args){
             return anvil.call(document.getElementById('app-root'), method, ...args);
@@ -151,6 +155,166 @@ container:
             return `<div class="tile-row"${extraStyle ? ` style="${extraStyle}"` : ''}>${states.map(t => `<span class="tile ${escapeHtml(t)}"></span>`).join('')}</div>`;
           }
 
+          function draftStorageKey(){
+            const email = appState.activeEmail || appState.user?.email || appState.workout?.resolvedUser?.email || '';
+            return email ? `oslocon_workout_draft::${String(email).toLowerCase()}` : '';
+          }
+
+          function cloneJson(value){
+            return JSON.parse(JSON.stringify(value));
+          }
+
+          function snapshotWorkoutForDraft(workout){
+            if (!workout || !Array.isArray(workout.exercises)) return null;
+            return {
+              current_day: workout.current_day,
+              saved_at_ms: Date.now(),
+              exercises: workout.exercises.map(ex => ({
+                slot_number: ex.slot_number,
+                exercise_id: ex.exercise_id,
+                is_unassigned: !!ex.is_unassigned,
+                uses_bodyweight: !!ex.uses_bodyweight,
+                recommended_weight: ex.recommended_weight,
+                recommended_reps: ex.recommended_reps,
+                status: ex.status,
+                collapsed: ex.collapsed,
+                sets: Array.isArray(ex.sets) ? ex.sets.map((s, idx) => ({
+                  set_index: s.set_index || idx + 1,
+                  weight: s.weight,
+                  reps: s.reps,
+                  performed: !!s.performed,
+                  auto_completed: !!s.auto_completed
+                })) : []
+              }))
+            };
+          }
+
+          function persistDraftNow(){
+            const key = draftStorageKey();
+            if (!key || appState.registrationRequired || !appState.workout) return;
+            try {
+              const payload = snapshotWorkoutForDraft(appState.workout);
+              if (!payload) return;
+              localStorage.setItem(key, JSON.stringify(payload));
+            } catch (err) {}
+          }
+
+          function persistDraftSoon(delay){
+            clearTimeout(draftSaveTimer);
+            draftSaveTimer = setTimeout(persistDraftNow, typeof delay === 'number' ? delay : 120);
+          }
+
+          function clearDraftStorage(dayCode){
+            const key = draftStorageKey();
+            if (!key) return;
+            try {
+              if (!dayCode) {
+                localStorage.removeItem(key);
+                return;
+              }
+              const raw = localStorage.getItem(key);
+              if (!raw) return;
+              const parsed = JSON.parse(raw);
+              if ((parsed || {}).current_day === dayCode) localStorage.removeItem(key);
+            } catch (err) {}
+          }
+
+          function updateExerciseStatusFromSets(ex){
+            if (!ex || ex.is_unassigned) return;
+            if (ex.status === 'skipped') {
+              ex.collapsed = true;
+              return;
+            }
+            const sets = Array.isArray(ex.sets) ? ex.sets : [];
+            const allPerformed = !!sets.length && sets.every(s => !!s.performed);
+            ex.status = allPerformed ? 'completed' : 'active';
+            ex.collapsed = allPerformed ? (ex.collapsed !== false) : false;
+          }
+
+          function mergePreservedSetState(previousExercise, nextExercise){
+            if (!previousExercise || !nextExercise) return;
+            const previousSets = Array.isArray(previousExercise.sets) ? previousExercise.sets : [];
+            const mergedSets = Array.isArray(nextExercise.sets) ? nextExercise.sets.slice() : [];
+
+            if (!previousSets.length && !(previousExercise.status === 'skipped')) return;
+
+            previousSets.forEach((oldSet, idx) => {
+              const preserved = {
+                weight: oldSet.weight,
+                reps: oldSet.reps,
+                performed: !!oldSet.performed,
+                auto_completed: !!oldSet.auto_completed,
+              };
+              if (idx >= mergedSets.length) {
+                mergedSets.push(preserved);
+              } else {
+                mergedSets[idx] = {...mergedSets[idx], ...preserved};
+              }
+            });
+
+            nextExercise.sets = mergedSets;
+            nextExercise.recommended_weight = previousExercise.recommended_weight ?? nextExercise.recommended_weight;
+            nextExercise.recommended_reps = previousExercise.recommended_reps ?? nextExercise.recommended_reps;
+            if (previousExercise.status === 'skipped') {
+              nextExercise.status = 'skipped';
+              nextExercise.collapsed = true;
+            } else {
+              updateExerciseStatusFromSets(nextExercise);
+              if (nextExercise.status === 'completed') nextExercise.collapsed = previousExercise.collapsed !== false;
+            }
+          }
+
+          function applyDraftStateToWorkout(workout, draft){
+            if (!workout || !draft || !Array.isArray(workout.exercises) || !Array.isArray(draft.exercises)) return false;
+            const draftBySlot = new Map(draft.exercises.map(ex => [String(ex.slot_number), ex]));
+            let applied = false;
+            workout.exercises.forEach(ex => {
+              const saved = draftBySlot.get(String(ex.slot_number));
+              if (!saved || ex.is_unassigned) return;
+              if (saved.exercise_id && ex.exercise_id && String(saved.exercise_id) !== String(ex.exercise_id)) return;
+              mergePreservedSetState(saved, ex);
+              applied = true;
+            });
+            return applied;
+          }
+
+          async function restoreDraftAfterBootstrap(){
+            const key = draftStorageKey();
+            if (!key || appState.registrationRequired || !appState.workout) return;
+            let parsed = null;
+            try {
+              parsed = JSON.parse(localStorage.getItem(key) || 'null');
+            } catch (err) {
+              parsed = null;
+            }
+            if (!parsed || !parsed.current_day) return;
+            const availableDays = (appState.workout.day_options || []).map(d => d.day_code);
+            if (!availableDays.includes(parsed.current_day)) return;
+            if (appState.workout.current_day !== parsed.current_day) {
+              try {
+                const payload = await py('py_load_workout_day', parsed.current_day);
+                appState.workout = payload;
+              } catch (err) {
+                return;
+              }
+            }
+            if (applyDraftStateToWorkout(appState.workout, parsed)) {
+              renderApp();
+              queueAutoCompleteCheck();
+            }
+          }
+
+          function queueAutoCompleteCheck(){
+            clearTimeout(autoCompleteTimer);
+            autoCompleteTimer = setTimeout(() => {
+              if (suppressAutoComplete || autoPrompted) return;
+              if (allDoneOrSkipped()) {
+                autoPrompted = true;
+                showAutoCompleteModal();
+              }
+            }, 0);
+          }
+
           function bootstrapApp(payload){
             appState = {
               activeEmail: payload.activeEmail || '',
@@ -161,6 +325,7 @@ container:
             };
             renderApp();
             document.addEventListener('click', handleGlobalClick);
+            restoreDraftAfterBootstrap();
           }
 
           function updateWorkout(payload){
@@ -168,6 +333,7 @@ container:
             autoPrompted = false;
             suppressAutoComplete = false;
             renderApp();
+            persistDraftSoon(20);
           }
 
           function acceptSubmissionResult(result){
@@ -175,6 +341,7 @@ container:
             appState.completionSummary = (result||{}).completion_summary || null;
             autoPrompted = false;
             suppressAutoComplete = false;
+            clearDraftStorage((result && result.completed_day_code) || (appState.workout && appState.workout.current_day));
             renderApp();
             openCompletionModal();
           }
@@ -326,56 +493,90 @@ container:
             appState.workout = data.workout || data;
             appState.user = appState.workout?.resolvedUser || appState.user;
             renderApp();
+            persistDraftSoon(20);
           }
 
-          async function loadDisplayedDay(dayCode){ if(dayCode){ const payload = await py('py_load_workout_day', dayCode); appState.workout = payload; renderApp(); } }
-          async function addExerciseSlot(){ const payload = await py('py_add_exercise_slot'); appState.workout = payload; renderApp(); }
+          async function loadDisplayedDay(dayCode){
+            if(!dayCode) return;
+            const payload = await py('py_load_workout_day', dayCode);
+            appState.workout = payload;
+            autoPrompted = false;
+            suppressAutoComplete = false;
+            renderApp();
+            persistDraftSoon(20);
+            queueAutoCompleteCheck();
+          }
+
+          async function addExerciseSlot(){
+            const payload = await py('py_add_exercise_slot');
+            appState.workout = payload;
+            renderApp();
+            persistDraftSoon(20);
+          }
+
           async function addWorkoutDay(){
             const payload = await py('py_add_workout_day');
             appState.workout = payload;
+            autoPrompted = false;
+            suppressAutoComplete = false;
             renderApp();
+            persistDraftSoon(20);
             const firstEmptyIdx = (appState.workout?.exercises || []).findIndex(ex => ex.is_unassigned);
             if (firstEmptyIdx >= 0) {
               setTimeout(() => openChangeExercise(firstEmptyIdx), 0);
             }
           }
-          async function removeCurrentWorkoutDay(){ const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); }
-          async function moveExercise(idx, dir){ const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); }
-          async function removeExercise(idx){ const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); }
-          function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); }
-          function editCollapsed(idx){ appState.workout.exercises[idx].collapsed=false; appState.workout.exercises[idx].status='active'; suppressAutoComplete = true; renderApp(); }
+
+          async function removeCurrentWorkoutDay(){ const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); persistDraftSoon(20); }
+          async function moveExercise(idx, dir){ const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); persistDraftSoon(20); }
+          async function removeExercise(idx){ const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); persistDraftSoon(20); }
+          function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); persistDraftSoon(); queueAutoCompleteCheck(); }
+          function editCollapsed(idx){ appState.workout.exercises[idx].collapsed=false; appState.workout.exercises[idx].status='active'; suppressAutoComplete = true; renderApp(); persistDraftSoon(); }
 
           function setValueChanged(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
-            ex.sets[setIdx].weight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
-            ex.sets[setIdx].reps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
+            const nextWeight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
+            const nextReps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
+            ex.sets[setIdx].weight = nextWeight;
+            ex.sets[setIdx].reps = nextReps;
             for(let i=setIdx+1;i<ex.sets.length;i++){
               if(ex.sets[i].performed) continue;
-              ex.sets[i].weight = ex.sets[setIdx].weight;
-              ex.sets[i].reps = ex.sets[setIdx].reps;
+              ex.sets[i].weight = nextWeight;
+              ex.sets[i].reps = nextReps;
+              const weightEl = document.getElementById(`w-${exIdx}-${i}`);
+              const repsEl = document.getElementById(`r-${exIdx}-${i}`);
+              if(weightEl) weightEl.value = nextWeight;
+              if(repsEl) repsEl.value = String(nextReps);
             }
+            persistDraftSoon();
           }
 
           function toggleSetDone(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
             const s = ex.sets[setIdx];
             s.performed = !s.performed;
-            if(ex.sets.every(x=>x.performed)){ ex.status='completed'; ex.collapsed=true; }
-            else if(ex.status !== 'skipped'){ ex.status='active'; }
+            updateExerciseStatusFromSets(ex);
             renderApp();
-            if(!suppressAutoComplete) maybeAutoComplete();
+            persistDraftSoon();
+            queueAutoCompleteCheck();
           }
 
           function addSetBelow(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
             const src = {...ex.sets[setIdx], performed:false, auto_completed:false};
             ex.sets.splice(setIdx+1,0,src);
+            updateExerciseStatusFromSets(ex);
             renderApp();
+            persistDraftSoon();
+            queueAutoCompleteCheck();
           }
           function deleteSet(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
             if(ex.sets.length>1) ex.sets.splice(setIdx,1); else { ex.sets[0].performed=false; ex.sets[0].auto_completed=false; }
+            updateExerciseStatusFromSets(ex);
             renderApp();
+            persistDraftSoon();
+            queueAutoCompleteCheck();
           }
 
           function toggleTopMenu(e){
@@ -457,97 +658,89 @@ container:
           }
           function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap') && !e.target.closest('#menuPortal')) closeMenus(); }
 
+          function focusExerciseSearchInput(){
+            setTimeout(() => {
+              const input = document.getElementById('exerciseSearch');
+              if (!input) return;
+              try {
+                input.focus();
+                input.select();
+              } catch (err) {}
+            }, 0);
+          }
+
+          function renderExerciseSearchResults(results, idx){
+            const host = document.getElementById('exerciseSearchResults');
+            if (!host) return;
+            currentExerciseSearchResults = results || [];
+            if (!currentExerciseSearchResults.length){
+              host.innerHTML = '<div class="muted">No matching exercises.</div>';
+              return;
+            }
+            host.innerHTML = currentExerciseSearchResults.map((r, resultIdx) => `
+              <button class="card" style="padding:8px;cursor:pointer;width:100%;text-align:left" onclick="pickExerciseResult(${idx}, ${resultIdx})">
+                <div style="font-weight:700">${escapeHtml(r.name)}</div>
+                <div class="muted">${escapeHtml(titleCaseWords(r.muscle_group || ''))}</div>
+              </button>
+            `).join('');
+          }
+
+          function scheduleExerciseSearch(idx, options){
+            const opts = options || {};
+            const input = document.getElementById('exerciseSearch');
+            if (!input) return;
+            const query = typeof opts.query === 'string' ? opts.query : input.value;
+            clearTimeout(exerciseSearchTimer);
+            const delay = opts.immediate ? 0 : 180;
+            const token = ++exerciseSearchToken;
+            latestExerciseSearchToken = token;
+            exerciseSearchTimer = setTimeout(() => performExerciseSearch(idx, query, token), delay);
+          }
+
+          async function performExerciseSearch(idx, query, token){
+            const host = document.getElementById('exerciseSearchResults');
+            if (host) host.innerHTML = '<div class="muted">Searching…</div>';
+            let results = [];
+            try {
+              results = await py('py_search_exercises', query || '');
+            } catch (err) {
+              if (token !== latestExerciseSearchToken) return;
+              if (host) host.innerHTML = '<div class="muted">Search failed.</div>';
+              return;
+            }
+            if (token !== latestExerciseSearchToken) return;
+            renderExerciseSearchResults(results, idx);
+          }
+
           async function openChangeExercise(idx){
             const current = appState.workout.exercises[idx];
             const initialValue = current && !current.is_unassigned && current.exercise_label !== 'Select exercise' ? (current.exercise_label || '') : '';
             showModal(`
               <div class="modal-card">
                 <div class="modal-head"><div class="modal-title">Change Exercise</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div>
-                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="searchExercises(${idx})" />
+                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="scheduleExerciseSearch(${idx})" />
                 <div id="exerciseSearchResults" style="margin-top:10px"></div>
               </div>`);
             window.currentExerciseSlotIndex = idx;
             const input = document.getElementById('exerciseSearch');
-            if (input) {
-              input.value = initialValue;
-              setTimeout(() => {
-                try { input.focus(); input.select(); } catch (err) {}
-              }, 0);
-            }
-            await searchExercises(idx, initialValue, {immediate: true});
+            if (input) input.value = initialValue;
+            focusExerciseSearchInput();
+            scheduleExerciseSearch(idx, { query: initialValue, immediate: true });
           }
 
-          async function searchExercises(idx, initial, options){
-            const input = document.getElementById('exerciseSearch');
-            const host = document.getElementById('exerciseSearchResults');
-            if (!host) return;
-            const query = typeof initial === 'string' ? initial : (input ? input.value : '');
-            const immediate = !!(options && options.immediate);
-            const token = ++exerciseSearchToken;
-
-            if (exerciseSearchTimer) {
-              clearTimeout(exerciseSearchTimer);
-              exerciseSearchTimer = null;
-            }
-
-            const runSearch = async () => {
-              host.innerHTML = '<div class="muted">Searching…</div>';
-              const results = await py('py_search_exercises', query || '');
-              if (token !== exerciseSearchToken) return;
-              const rows = (results || []).map(r => {
-                const exerciseId = r.id != null ? r.id : r.exercise_id;
-                const exerciseName = r.name || '';
-                return `<div class="card" style="padding:8px;cursor:pointer" onclick="pickExercise(${idx}, this.dataset.exerciseId, this.dataset.exerciseName)" data-exercise-id="${escapeAttr(String(exerciseId != null ? exerciseId : ''))}" data-exercise-name="${escapeAttr(String(exerciseName))}"><div style="font-weight:700">${escapeHtml(exerciseName)}</div><div class="muted">${escapeHtml(r.muscle_group || '')}</div></div>`;
-              }).join('');
-              host.innerHTML = rows || '<div class="muted">No exercises found.</div>';
-            };
-
-            if (immediate) {
-              await runSearch();
-              return;
-            }
-
-            exerciseSearchTimer = setTimeout(runSearch, 180);
-          }
-
-          function mergePreservedSetState(previousExercise, nextExercise){
-            if (!previousExercise || !nextExercise) return;
-            const previousSets = Array.isArray(previousExercise.sets) ? previousExercise.sets : [];
-            const mergedSets = Array.isArray(nextExercise.sets) ? nextExercise.sets.slice() : [];
-
-            previousSets.forEach((oldSet, idx) => {
-              if (!(oldSet && (oldSet.performed || oldSet.auto_completed))) return;
-              const preserved = {
-                weight: oldSet.weight,
-                reps: oldSet.reps,
-                performed: !!oldSet.performed,
-                auto_completed: !!oldSet.auto_completed,
-              };
-              if (idx >= mergedSets.length) {
-                mergedSets.push(preserved);
-              } else {
-                mergedSets[idx] = {...mergedSets[idx], ...preserved};
-              }
-            });
-
-            nextExercise.sets = mergedSets;
-            if (mergedSets.some(s => s.performed)) {
-              const allPerformed = mergedSets.every(s => s.performed);
-              nextExercise.status = allPerformed ? 'completed' : 'active';
-              nextExercise.collapsed = allPerformed;
-            }
-          }
-
-          async function pickExercise(idx, exerciseId, exerciseName){
-            const previousExercise = JSON.parse(JSON.stringify(appState.workout.exercises[idx] || {}));
+          async function pickExerciseResult(idx, resultIdx){
+            const result = currentExerciseSearchResults[resultIdx];
+            if (!result) return;
+            const previousExercise = cloneJson(appState.workout.exercises[idx] || {});
             const slot = previousExercise.slot_number;
-            const resolvedExerciseRef = (exerciseId != null && String(exerciseId).trim() !== '') ? String(exerciseId).trim() : String(exerciseName || '').trim();
-            const payload = await py('py_assign_slot_exercise', slot, resolvedExerciseRef);
+            const payload = await py('py_assign_slot_exercise', slot, String(result.id != null ? result.id : result.exercise_id));
             appState.workout = payload;
-            const nextExercise = (appState.workout?.exercises || []).find(ex => ex.slot_number === slot) || (appState.workout?.exercises || [])[idx];
+            const nextExercise = (appState.workout?.exercises || []).find(ex => String(ex.slot_number) === String(slot)) || (appState.workout?.exercises || [])[idx];
             mergePreservedSetState(previousExercise, nextExercise);
             closeModal();
             renderApp();
+            persistDraftSoon(20);
+            queueAutoCompleteCheck();
           }
 
           async function openHistoryModal(){
@@ -564,7 +757,8 @@ container:
             activeHistoryTitle = title || 'Workout History';
             const cards = activeHistoryItems.map(item => {
               const dateText = item.completed_at_display || formatLocalDateTime(item.completed_at || item.timestamp_ms || '');
-              const status = item.status || item.completion_bucket || '';
+              const rawStatus = item.status || item.completion_bucket || '';
+              const status = String(rawStatus || '').toLowerCase() === 'standard' ? '' : rawStatus;
               const share = item.share_text || '';
               const tileStates = (Array.isArray(item.tile_states) && item.tile_states.length) ? item.tile_states : extractTileStatesFromShareText(share);
               const tiles = renderTileRow(tileStates, 'margin-top:8px');
@@ -594,7 +788,7 @@ container:
             const value = appState.workout?.progression_settings?.progress_every_n_qualifying_workouts || 3;
             showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Progression Settings</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">Progress after this many qualifying workouts.</div><div style="margin-top:10px"><select id="progressionSetting" class="select">${[1,2,3,4,5,6].map(v=>`<option value="${v}" ${v===value?'selected':''}>${v}</option>`).join('')}</select></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Close</button><button class="btn" onclick="saveProgressionSetting()">Save</button></div></div>`);
           }
-          async function saveProgressionSetting(){ const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); }
+          async function saveProgressionSetting(){ const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); persistDraftSoon(20); }
 
           function assignedExercises(){ return (appState.workout?.exercises || []).filter(e => !e.is_unassigned && e.exercise_id); }
           function allDoneOrSkipped(){ const arr=assignedExercises(); return arr.length && arr.every(ex => ex.status==='skipped' || (ex.sets||[]).every(s=>s.performed)); }
@@ -615,12 +809,15 @@ container:
               (ex.sets||[]).forEach(s => { if(!s.performed){ s.performed=true; s.auto_completed=true; }});
               ex.status='completed'; ex.collapsed=true;
             });
-            autoPrompted = true; suppressAutoComplete = true; renderApp(); showUnfinishedModal(true);
+            autoPrompted = true; suppressAutoComplete = true; renderApp(); persistDraftSoon(); showUnfinishedModal(true);
           }
 
           async function submitWorkout(){
             closeModal();
-            const payload = { day_code: appState.workout.current_day, exercises: [] };
+            clearTimeout(draftSaveTimer);
+            persistDraftNow();
+            const completedDayCode = appState.workout.current_day;
+            const payload = { day_code: completedDayCode, exercises: [] };
             (appState.workout.exercises || []).forEach(ex => {
               if(ex.is_unassigned || !ex.exercise_id) return;
               payload.exercises.push({
@@ -633,7 +830,9 @@ container:
                 sets: ex.sets || []
               });
             });
-            await py('py_submit_workout', payload);
+            const result = await py('py_submit_workout', payload);
+            clearDraftStorage(completedDayCode);
+            return result;
           }
 
           function openCompletionModal(){
@@ -644,7 +843,7 @@ container:
           function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
 
           function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
-          function closeModal(){ const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
+          function closeModal(){ clearTimeout(exerciseSearchTimer); latestExerciseSearchToken = ++exerciseSearchToken; currentExerciseSearchResults = []; const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
           function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
           function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }

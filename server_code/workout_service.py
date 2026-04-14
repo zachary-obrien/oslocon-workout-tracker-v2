@@ -48,6 +48,41 @@ def _user_timezone(user):
   return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
 
 
+def _coerce_number(value):
+  if value in (None, "", False):
+    return None
+  if isinstance(value, (int, float)):
+    return float(value)
+  text = str(value).strip()
+  if not text or text.lower() == 'bw':
+    return None
+  try:
+    return float(text)
+  except Exception:
+    return None
+
+
+def _coerce_weight(value, uses_bodyweight):
+  if uses_bodyweight:
+    return None
+  return _coerce_number(value)
+
+
+def _coerce_reps(value):
+  num = _coerce_number(value)
+  return int(num) if num is not None else None
+
+
+def _same_numeric(a, b):
+  na = _coerce_number(a)
+  nb = _coerce_number(b)
+  if na is None and nb is None:
+    return True
+  if na is None or nb is None:
+    return False
+  return abs(na - nb) < 1e-9
+
+
 def _lookup_exercise_reference(exercise_ref):
   candidates = [exercise_ref]
   if isinstance(exercise_ref, str):
@@ -273,9 +308,9 @@ def _classify_tile_state(exercise_changed, exercise_status, sets_payload):
   for s in sets_payload:
     if not s.get("performed"):
       continue
-    if s.get("actual_weight") != s.get("planned_weight"):
+    if not _same_numeric(s.get("actual_weight"), s.get("planned_weight")):
       any_weight_changed = True
-    if int(s.get("actual_reps") or 0) != int(s.get("planned_reps") or 0):
+    if _coerce_reps(s.get("actual_reps")) != _coerce_reps(s.get("planned_reps")):
       any_reps_changed = True
   if any_weight_changed and any_reps_changed:
     return "gray"
@@ -286,10 +321,15 @@ def _exercise_exceeded(sets_payload, uses_bodyweight):
   for s in sets_payload:
     if not s.get("performed"):
       continue
-    if int(s.get("actual_reps") or 0) > int(s.get("planned_reps") or 0):
+    actual_reps = _coerce_reps(s.get("actual_reps")) or 0
+    planned_reps = _coerce_reps(s.get("planned_reps")) or 0
+    if actual_reps > planned_reps:
       return True
-    if not uses_bodyweight and float(s.get("actual_weight") or 0) > float(s.get("planned_weight") or 0):
-      return True
+    if not uses_bodyweight:
+      actual_weight = _coerce_weight(s.get("actual_weight"), False) or 0
+      planned_weight = _coerce_weight(s.get("planned_weight"), False) or 0
+      if actual_weight > planned_weight:
+        return True
   return False
 
 
@@ -350,10 +390,10 @@ def submit_workout(payload):
     previous_slot = previous_slot_rows[0] if previous_slot_rows else None
     exercise_changed = bool(previous_slot and previous_slot["exercise"] != exercise)
 
-    planned_weight = ex.get("recommended_weight")
-    planned_reps = ex.get("recommended_reps")
-    planned_sets = len(ex.get("sets", []))
     uses_bodyweight = bool(ex.get("uses_bodyweight"))
+    planned_weight = _coerce_weight(ex.get("recommended_weight"), uses_bodyweight)
+    planned_reps = _coerce_reps(ex.get("recommended_reps"))
+    planned_sets = len(ex.get("sets", []))
 
     sets_payload = []
     for idx, s in enumerate(ex.get("sets", []), start=1):
@@ -361,8 +401,8 @@ def submit_workout(payload):
         "planned_weight": planned_weight,
         "planned_reps": planned_reps,
         "planned_uses_bodyweight": uses_bodyweight,
-        "actual_weight": s.get("weight"),
-        "actual_reps": s.get("reps"),
+        "actual_weight": _coerce_weight(s.get("weight"), uses_bodyweight),
+        "actual_reps": _coerce_reps(s.get("reps")),
         "actual_uses_bodyweight": uses_bodyweight,
         "performed": bool(s.get("performed")),
         "auto_completed": bool(s.get("auto_completed")),
@@ -438,4 +478,4 @@ def submit_workout(payload):
   session["share_text"] = summary["share_text"]
 
   next_payload = build_workout_payload(user, None)
-  return {"workout": next_payload, "completion_summary": summary}
+  return {"workout": next_payload, "completion_summary": summary, "completed_day_code": day_code}
