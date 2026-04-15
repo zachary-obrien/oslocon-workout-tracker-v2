@@ -9,6 +9,7 @@ get_day_by_code,
 get_slots_for_day,
 get_recent_sessions,
 get_user_exercise_state,
+safe_get,
 now,
 get_workout_draft,
 upsert_workout_draft,
@@ -21,13 +22,27 @@ apply_progression_after_workout,
 estimate_1rm,
 compute_set_score,
 )
-from history_service import get_previous_session_summary, get_strongest_session_summary
+from history_service import get_previous_session_summary, get_strongest_session_summary, get_weekly_muscle_volume
 from quote_service import get_rotated_message
 from routine_service import add_empty_slot, add_workout_day as add_day_impl, remove_workout_day as remove_day_impl, move_slot as move_slot_impl, remove_slot as remove_slot_impl
 
 
+SET_MODES = {
+  "standard": "Standard Sets",
+  "myo_sets": "Myo Sets",
+  "myo_rep_match": "Myo Rep Match Sets",
+}
+
+
+def _normalize_set_mode(mode):
+  raw = str(mode or "standard").strip().lower().replace("-", "_").replace(" ", "_")
+  if raw in SET_MODES:
+    return raw
+  return "standard"
+
+
 def _serialize_day_options(days):
-  return [{"day_code": d["day_code"], "display_order": d["display_order"]} for d in days]
+  return [{"day_code": safe_get(d, "day_code", ""), "display_order": safe_get(d, "display_order", None)} for d in days]
 
 
 def _get_next_scheduled_day(user):
@@ -37,19 +52,23 @@ def _get_next_scheduled_day(user):
   sessions = get_recent_sessions(user, limit=1)
   if not sessions:
     return days[0]
-  last_day_code = sessions[0]["day_code_snapshot"]
-  current_index = next((i for i, d in enumerate(days) if d["day_code"] == last_day_code), -1)
+  last_day_code = safe_get(sessions[0], "day_code_snapshot", None)
+  current_index = next((i for i, d in enumerate(days) if safe_get(d, "day_code", None) == last_day_code), -1)
   next_index = (current_index + 1) % len(days)
   return days[next_index]
 
 
 def _get_primary_muscle(exercise):
-  muscles = exercise["primary_muscles"] or []
+  muscles = safe_get(exercise, "primary_muscles", []) or []
   return muscles[0] if muscles else "General"
 
 
 def _user_timezone(user):
-  return (user["timezone"] or "America/Chicago") if user else "America/Chicago"
+  return (safe_get(user, "timezone", "America/Chicago") or "America/Chicago") if user else "America/Chicago"
+
+
+def _slot_set_mode(slot):
+  return _normalize_set_mode(safe_get(slot, "set_mode", "standard"))
 
 
 def _coerce_number(value):
@@ -110,8 +129,8 @@ def _lookup_exercise_reference(exercise_ref):
 
   target = normalize_for_match(raw)
   for row in app_tables.exercises.search(is_active=True):
-    row_name = row["name"] or ""
-    row_normalized = row["normalized_name"] or row_name
+    row_name = safe_get(row, "name", "") or ""
+    row_normalized = safe_get(row, "normalized_name", None) or row_name
     if normalize_for_match(row_name) == target or normalize_for_match(row_normalized) == target:
       return row
 
@@ -120,108 +139,116 @@ def _lookup_exercise_reference(exercise_ref):
 
 def _serialize_draft_payload(workout_payload):
   return {
-    'current_day': workout_payload.get('current_day'),
-    'saved_at': now().isoformat(),
-    'exercises': [
+    "current_day": workout_payload.get("current_day"),
+    "saved_at": now().isoformat(),
+    "exercises": [
       {
-        'slot_number': ex.get('slot_number'),
-        'exercise_id': ex.get('exercise_id'),
-        'status': ex.get('status'),
-        'collapsed': ex.get('collapsed'),
-        'sets': [
+        "slot_number": ex.get("slot_number"),
+        "exercise_id": ex.get("exercise_id"),
+        "status": ex.get("status"),
+        "collapsed": ex.get("collapsed"),
+        "set_mode": ex.get("set_mode") or "standard",
+        "sets": [
           {
-            'set_index': s.get('set_index') or idx + 1,
-            'weight': s.get('weight'),
-            'reps': s.get('reps'),
-            'performed': bool(s.get('performed')),
-            'auto_completed': bool(s.get('auto_completed')),
+            "set_index": s.get("set_index") or idx + 1,
+            "weight": s.get("weight"),
+            "reps": s.get("reps"),
+            "performed": bool(s.get("performed")),
+            "auto_completed": bool(s.get("auto_completed")),
+            "locked": bool(s.get("locked")),
           }
-          for idx, s in enumerate(ex.get('sets') or [])
+          for idx, s in enumerate(ex.get("sets") or [])
         ],
       }
-      for ex in (workout_payload.get('exercises') or [])
+      for ex in (workout_payload.get("exercises") or [])
     ],
   }
 
 
-
-
-def _draft_state_payload(draft_row, resumed=False):
-  if not draft_row:
-    return {"has_draft": False, "updated_at": "", "resumed": False}
-  updated = draft_row["updated_at"] or draft_row["created_at"]
-  return {
-    "has_draft": True,
-    "updated_at": updated.isoformat() if updated else "",
-    "resumed": bool(resumed),
-  }
-
-
-def _targets_from_previous_summary(previous, fallback_weight, fallback_reps):
-  if not previous:
-    return {"weight": fallback_weight, "reps": fallback_reps}
-  sets = previous.get("sets") or []
-  for s in sets:
-    if s.get("performed"):
-      return {"weight": s.get("weight_value") if s.get("weight_value") is not None else fallback_weight, "reps": s.get("reps") or fallback_reps}
-  if previous.get("planned_weight") is not None or previous.get("planned_reps") is not None:
-    return {"weight": previous.get("planned_weight") if previous.get("planned_weight") is not None else fallback_weight, "reps": previous.get("planned_reps") or fallback_reps}
-  return {"weight": fallback_weight, "reps": fallback_reps}
-
 def _apply_draft_to_exercises(exercises, draft_payload):
   if not draft_payload:
     return False
-  draft_exercises = draft_payload.get('exercises') or []
+  draft_exercises = draft_payload.get("exercises") or []
   if not draft_exercises:
     return False
-  draft_by_slot = {str(ex.get('slot_number')): ex for ex in draft_exercises}
+  draft_by_slot = {str(ex.get("slot_number")): ex for ex in draft_exercises}
   applied = False
   for ex in exercises:
-    saved = draft_by_slot.get(str(ex.get('slot_number')))
-    if not saved or ex.get('is_unassigned'):
+    saved = draft_by_slot.get(str(ex.get("slot_number")))
+    if not saved or ex.get("is_unassigned"):
       continue
-    if saved.get('exercise_id') and ex.get('exercise_id') and str(saved.get('exercise_id')) != str(ex.get('exercise_id')):
+    if saved.get("exercise_id") and ex.get("exercise_id") and str(saved.get("exercise_id")) != str(ex.get("exercise_id")):
       continue
-    saved_sets = saved.get('sets') or []
+    if saved.get("set_mode"):
+      ex["set_mode"] = _normalize_set_mode(saved.get("set_mode"))
+      ex["set_mode_label"] = SET_MODES[ex["set_mode"]]
+    saved_sets = saved.get("sets") or []
     for idx, s in enumerate(saved_sets):
-      if idx >= len(ex.get('sets') or []):
+      if idx >= len(ex.get("sets") or []):
         break
-      ex['sets'][idx]['weight'] = s.get('weight')
-      ex['sets'][idx]['reps'] = s.get('reps')
-      ex['sets'][idx]['performed'] = bool(s.get('performed'))
-      ex['sets'][idx]['auto_completed'] = bool(s.get('auto_completed'))
-    ex['status'] = saved.get('status') or ex.get('status')
-    ex['collapsed'] = saved.get('collapsed') if saved.get('collapsed') is not None else ex.get('collapsed')
+      ex["sets"][idx]["weight"] = s.get("weight")
+      ex["sets"][idx]["reps"] = s.get("reps")
+      ex["sets"][idx]["performed"] = bool(s.get("performed"))
+      ex["sets"][idx]["auto_completed"] = bool(s.get("auto_completed"))
+      ex["sets"][idx]["locked"] = bool(s.get("locked"))
+    ex["status"] = saved.get("status") or ex.get("status")
+    if saved.get("collapsed") is not None:
+      ex["collapsed"] = saved.get("collapsed")
     applied = True
   return applied
 
 
+def _make_default_sets(target_weight, target_reps, uses_bodyweight, default_sets, set_mode):
+  set_mode = _normalize_set_mode(set_mode)
+  sets = []
+  default_sets = int(default_sets or 0)
+  for idx in range(default_sets):
+    reps = target_reps
+    locked = False
+    if set_mode == "myo_sets" and idx >= 1:
+      reps = 5
+    if set_mode == "myo_rep_match" and idx >= 1:
+      locked = True
+    sets.append({
+      "set_index": idx + 1,
+      "weight": target_weight,
+      "reps": reps,
+      "performed": False,
+      "auto_completed": False,
+      "locked": locked,
+    })
+  return sets
+
+
 def _serialize_slot(user, slot, day_slots):
-  exercise = slot["exercise"]
+  exercise = safe_get(slot, "exercise", None)
   display_order_index = day_slots.index(slot)
   can_move_up = display_order_index > 0
   can_move_down = display_order_index < len(day_slots) - 1
+  set_mode = _slot_set_mode(slot)
 
   if exercise is None:
     return {
-      "slot_number": slot["slot_number"],
-      "display_order": slot["display_order"],
+      "slot_number": safe_get(slot, "slot_number", None),
+      "display_order": safe_get(slot, "display_order", None),
       "exercise_id": None,
       "exercise_name": "",
       "exercise_label": "Select exercise",
       "muscle_group": "Unassigned",
       "group_size": "Small",
-      "base_target_weight": slot["base_target_weight"],
-      "base_target_reps": slot["base_target_reps"],
-      "default_sets": slot["default_sets"],
-      "uses_bodyweight": slot["uses_bodyweight"],
-      "recommended_weight": slot["base_target_weight"],
-      "recommended_reps": slot["base_target_reps"],
+      "base_target_weight": safe_get(slot, "base_target_weight", None),
+      "base_target_reps": safe_get(slot, "base_target_reps", 12),
+      "default_sets": safe_get(slot, "default_sets", 5),
+      "uses_bodyweight": bool(safe_get(slot, "uses_bodyweight", False)),
+      "recommended_weight": safe_get(slot, "base_target_weight", None),
+      "recommended_reps": safe_get(slot, "base_target_reps", 12),
       "status": "active",
       "collapsed": False,
       "is_unassigned": True,
       "can_move_up": can_move_up,
       "can_move_down": can_move_down,
+      "set_mode": set_mode,
+      "set_mode_label": SET_MODES[set_mode],
       "sets": [],
       "previous_session": None,
       "strongest_day": None,
@@ -231,48 +258,50 @@ def _serialize_slot(user, slot, day_slots):
   targets = get_current_targets(
     user=user,
     exercise=exercise,
-    default_weight=slot["base_target_weight"],
-    default_reps=slot["base_target_reps"],
-    uses_bodyweight=slot["uses_bodyweight"],
+    default_weight=safe_get(slot, "base_target_weight", None),
+    default_reps=safe_get(slot, "base_target_reps", 12),
+    uses_bodyweight=bool(safe_get(slot, "uses_bodyweight", False)),
   )
   state = get_user_exercise_state(user, exercise)
   previous = get_previous_session_summary(user, exercise)
   strongest = get_strongest_session_summary(user, exercise)
-  seeded = _targets_from_previous_summary(previous, targets["weight"], targets["reps"])
+  last_sets = list((previous or {}).get("sets") or [])
+  performed_sets = [s for s in last_sets if s.get("performed")]
+  seed_set = (performed_sets or last_sets or [None])[0]
+  if seed_set:
+    seeded_weight = seed_set.get("weight_value", seed_set.get("weight"))
+    seeded_reps = seed_set.get("reps")
+    if seeded_weight is not None or bool(safe_get(slot, "uses_bodyweight", False)):
+      targets["weight"] = seeded_weight if not bool(safe_get(slot, "uses_bodyweight", False)) else 'BW'
+    if seeded_reps not in (None, ""):
+      targets["reps"] = int(seeded_reps)
   return {
-    "slot_number": slot["slot_number"],
-    "display_order": slot["display_order"],
+    "slot_number": safe_get(slot, "slot_number", None),
+    "display_order": safe_get(slot, "display_order", None),
     "exercise_id": exercise.get_id(),
-    "exercise_name": exercise["name"],
-    "exercise_label": exercise["name"],
+    "exercise_name": safe_get(exercise, "name", ""),
+    "exercise_label": safe_get(exercise, "name", ""),
     "muscle_group": _get_primary_muscle(exercise),
-    "group_size": exercise["group_size"],
-    "base_target_weight": slot["base_target_weight"],
-    "base_target_reps": slot["base_target_reps"],
-    "default_sets": slot["default_sets"],
-    "uses_bodyweight": slot["uses_bodyweight"],
-    "recommended_weight": seeded["weight"],
-    "recommended_reps": seeded["reps"],
+    "group_size": safe_get(exercise, "group_size", "Small"),
+    "base_target_weight": safe_get(slot, "base_target_weight", None),
+    "base_target_reps": safe_get(slot, "base_target_reps", 12),
+    "default_sets": safe_get(slot, "default_sets", 5),
+    "uses_bodyweight": bool(safe_get(slot, "uses_bodyweight", False)),
+    "recommended_weight": targets["weight"],
+    "recommended_reps": targets["reps"],
     "status": "active",
     "collapsed": False,
     "is_unassigned": False,
     "can_move_up": can_move_up,
     "can_move_down": can_move_down,
-    "sets": [
-      {
-        "set_index": idx + 1,
-        "weight": seeded["weight"],
-        "reps": seeded["reps"],
-        "performed": False,
-        "auto_completed": False,
-      }
-      for idx in range(int(slot["default_sets"] or 0))
-    ],
+    "set_mode": set_mode,
+    "set_mode_label": SET_MODES[set_mode],
+    "sets": _make_default_sets(targets["weight"], targets["reps"], bool(safe_get(slot, "uses_bodyweight", False)), safe_get(slot, "default_sets", 5), set_mode),
     "previous_session": previous,
     "strongest_day": strongest,
     "qualifying_progress": {
-      "current": int(state["qualifying_streak"] or 0) if state else 0,
-      "target": int(user["progress_every_n_qualifying_workouts"] or 3),
+      "current": int(safe_get(state, "qualifying_streak", 0) or 0) if state else 0,
+      "target": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3),
     },
   }
 
@@ -292,23 +321,29 @@ def build_workout_payload(user, selected_day_code=None):
 
   draft_row = get_workout_draft(user, current_day)
   resumed = False
+  resumed_at = None
   if draft_is_fresh(draft_row, 24):
-    resumed = _apply_draft_to_exercises(exercises, draft_row["draft_payload"] or {})
+    resumed = _apply_draft_to_exercises(exercises, safe_get(draft_row, 'draft_payload', {}) or {})
+    if resumed:
+      resumed_at = safe_get(draft_row, 'updated_at', None) or safe_get(draft_row, 'created_at', None)
 
   return {
     "resolvedUser": {
-      "display_name": user["display_name"] or user["email"].split("@")[0].title(),
-      "email": user["email"],
+      "display_name": safe_get(user, "display_name", "") or safe_get(user, "email", "user").split("@")[0].title(),
+      "email": safe_get(user, "email", ""),
     },
-    "current_day": current_day["day_code"],
-    "next_scheduled_day": next_day["day_code"] if next_day else current_day["day_code"],
+    "current_day": safe_get(current_day, "day_code", None),
+    "next_scheduled_day": safe_get(next_day, "day_code", None) if next_day else safe_get(current_day, "day_code", None),
     "day_options": _serialize_day_options(days),
     "can_remove_current_day": len(days) > 1,
     "exercises": exercises,
     "progression_settings": {
-      "progress_every_n_qualifying_workouts": int(user["progress_every_n_qualifying_workouts"] or 3)
+      "progress_every_n_qualifying_workouts": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3)
     },
-    "draft_state": _draft_state_payload(draft_row, resumed=resumed) if (draft_row and draft_is_fresh(draft_row, 24)) else {"has_draft": False, "updated_at": "", "resumed": False},
+    "draft_state": {
+      "has_draft": resumed,
+      "updated_at": resumed_at.isoformat() if resumed_at else "",
+    },
   }
 
 
@@ -334,14 +369,14 @@ def save_workout_draft(day_code, draft_payload):
   day = get_day_by_code(user, day_code)
   if day is None:
     raise Exception("Workout day not found.")
-  upsert_workout_draft(user, day, draft_payload or {})
+  upsert_workout_draft(user, day, _serialize_draft_payload(draft_payload or {}))
   draft_row = get_workout_draft(user, day)
-  updated = draft_row["updated_at"] if draft_row else None
-  return {"ok": True, "updated_at": updated.isoformat() if updated else ''}
+  updated = safe_get(draft_row, "updated_at", None) if draft_row else None
+  return {"ok": True, "updated_at": updated.isoformat() if updated else ""}
 
 
 @anvil.server.callable
-def clear_workout_draft(day_code):
+def clear_current_workout_changes(day_code):
   user = get_current_user()
   day = get_day_by_code(user, day_code)
   if day is None:
@@ -381,7 +416,20 @@ def assign_slot_exercise(day_code, slot_number, exercise_id):
   exercise = _lookup_exercise_reference(exercise_id)
   if exercise is None:
     raise Exception("Exercise not found.")
-  slot.update(exercise=exercise, uses_bodyweight=bool(exercise["uses_bodyweight_default"]), updated_at=now())
+  update_kwargs = {
+    "exercise": exercise,
+    "uses_bodyweight": bool(safe_get(exercise, "uses_bodyweight_default", False)),
+    "updated_at": now(),
+  }
+  slot.update(**update_kwargs)
+  return build_workout_payload(user, day_code)
+
+
+@anvil.server.callable
+def set_exercise_set_mode(day_code, slot_number, mode):
+  user = get_current_user()
+  _, slot = _get_slot_by_identifiers(user, day_code, slot_number)
+  slot.update(set_mode=_normalize_set_mode(mode), updated_at=now())
   return build_workout_payload(user, day_code)
 
 
@@ -389,14 +437,14 @@ def assign_slot_exercise(day_code, slot_number, exercise_id):
 def add_workout_day():
   user = get_current_user()
   day = add_day_impl(user)
-  return build_workout_payload(user, day["day_code"])
+  return build_workout_payload(user, safe_get(day, "day_code", None))
 
 
 @anvil.server.callable
 def remove_workout_day(day_code):
   user = get_current_user()
   remaining = remove_day_impl(user, day_code)
-  new_day_code = remaining[0]["day_code"] if remaining else None
+  new_day_code = safe_get(remaining[0], "day_code", None) if remaining else None
   return build_workout_payload(user, new_day_code)
 
 
@@ -450,6 +498,7 @@ def _build_completion_summary(user, completion_bucket, tile_states, completed_at
   timezone_name = _user_timezone(user)
   formatted_date = format_share_datetime(completed_at, timezone_name)
   share_text = "Oslocon Workout!\n" + formatted_date + "\n" + "".join(tile_to_emoji(t) for t in tile_states)
+  weekly_volume = get_weekly_muscle_volume(user, completed_at)
   return {
     "headline": {
       "skipped": "Workout logged",
@@ -462,7 +511,31 @@ def _build_completion_summary(user, completion_bucket, tile_states, completed_at
     "share_text": share_text,
     "show_confetti": completion_bucket in ("standard", "exceeded"),
     "bucket": completion_bucket,
+    "weekly_volume": {
+      "week_start": format_share_datetime(weekly_volume.get("week_start"), timezone_name).split(" ")[0] if weekly_volume.get("week_start") else "",
+      "week_end": format_share_datetime(weekly_volume.get("week_end"), timezone_name).split(" ")[0] if weekly_volume.get("week_end") else "",
+      "muscles": weekly_volume.get("muscles", []),
+    },
   }
+
+
+def _add_session_exercise_row(**kwargs):
+  try:
+    return app_tables.workout_session_exercises.add_row(**kwargs)
+  except Exception:
+    fallback = dict(kwargs)
+    for key in ["set_mode_snapshot", "primary_muscles_snapshot", "secondary_muscles_snapshot"]:
+      fallback.pop(key, None)
+    row = app_tables.workout_session_exercises.add_row(**fallback)
+    for key in ["set_mode_snapshot", "primary_muscles_snapshot", "secondary_muscles_snapshot"]:
+      value = kwargs.get(key)
+      if value is None:
+        continue
+      try:
+        row[key] = value
+      except Exception:
+        pass
+    return row
 
 
 @anvil.server.callable
@@ -492,28 +565,33 @@ def submit_workout(payload):
     if not ex.get("exercise_id"):
       continue
     slot = app_tables.workout_slots.get(user=user, workout_day=day, slot_number=ex["slot_number"], is_active=True)
-    exercise = app_tables.exercises.get_by_id(ex["exercise_id"])
+    exercise = _lookup_exercise_reference(ex.get("exercise_id"))
     if slot is None or exercise is None:
       continue
 
     previous_slot_rows = [r for r in app_tables.workout_session_exercises.search(user=user, workout_slot=slot)]
-    previous_slot_rows.sort(key=lambda r: r["created_at"] or now(), reverse=True)
+    previous_slot_rows.sort(key=lambda r: safe_get(r, "created_at", now()) or now(), reverse=True)
     previous_slot = previous_slot_rows[0] if previous_slot_rows else None
-    exercise_changed = bool(previous_slot and previous_slot["exercise"] != exercise)
+    exercise_changed = bool(previous_slot and safe_get(previous_slot, "exercise", None) != exercise)
 
     uses_bodyweight = bool(ex.get("uses_bodyweight"))
-    planned_weight = _coerce_weight(ex.get("recommended_weight"), uses_bodyweight)
-    planned_reps = _coerce_reps(ex.get("recommended_reps"))
+    recommended_weight = _coerce_weight(ex.get("recommended_weight"), uses_bodyweight)
+    recommended_reps = _coerce_reps(ex.get("recommended_reps"))
     planned_sets = len(ex.get("sets", []))
+    set_mode = _normalize_set_mode(ex.get("set_mode") or safe_get(slot, "set_mode", "standard"))
 
     sets_payload = []
     for idx, s in enumerate(ex.get("sets", []), start=1):
+      planned_weight = _coerce_weight(s.get("weight"), uses_bodyweight)
+      planned_reps = _coerce_reps(s.get("reps"))
+      actual_weight = planned_weight if s.get("performed") else _coerce_weight(s.get("weight"), uses_bodyweight)
+      actual_reps = planned_reps if s.get("performed") else _coerce_reps(s.get("reps"))
       sets_payload.append({
         "planned_weight": planned_weight,
         "planned_reps": planned_reps,
         "planned_uses_bodyweight": uses_bodyweight,
-        "actual_weight": _coerce_weight(s.get("weight"), uses_bodyweight),
-        "actual_reps": _coerce_reps(s.get("reps")),
+        "actual_weight": actual_weight,
+        "actual_reps": actual_reps,
         "actual_uses_bodyweight": uses_bodyweight,
         "performed": bool(s.get("performed")),
         "auto_completed": bool(s.get("auto_completed")),
@@ -529,17 +607,17 @@ def submit_workout(payload):
     any_exceeded = any_exceeded or exceeded_plan
     any_skippedish = any_skippedish or exercise_status == "skipped" or had_skipped_sets
 
-    session_exercise = app_tables.workout_session_exercises.add_row(
+    session_exercise = _add_session_exercise_row(
       workout_session=session,
       user=user,
       workout_slot=slot,
       exercise=exercise,
-      exercise_name_snapshot=exercise["name"],
-      muscle_group_snapshot=(exercise["primary_muscles"] or ["General"])[0],
-      group_size_snapshot=exercise["group_size"],
-      display_order_snapshot=slot["display_order"],
-      planned_weight=planned_weight,
-      planned_reps=planned_reps,
+      exercise_name_snapshot=safe_get(exercise, "name", ""),
+      muscle_group_snapshot=(safe_get(exercise, "primary_muscles", []) or ["General"])[0],
+      group_size_snapshot=safe_get(exercise, "group_size", "Small"),
+      display_order_snapshot=safe_get(slot, "display_order", None),
+      planned_weight=recommended_weight,
+      planned_reps=recommended_reps,
       planned_sets=planned_sets,
       uses_bodyweight=uses_bodyweight,
       exercise_status=exercise_status,
@@ -548,6 +626,9 @@ def submit_workout(payload):
       exceeded_plan=exceeded_plan,
       had_skipped_sets=had_skipped_sets,
       created_at=completed_at,
+      set_mode_snapshot=set_mode,
+      primary_muscles_snapshot=safe_get(exercise, "primary_muscles", []) or [],
+      secondary_muscles_snapshot=safe_get(exercise, "secondary_muscles", []) or [],
     )
 
     for s in sets_payload:
@@ -570,9 +651,9 @@ def submit_workout(payload):
       apply_progression_after_workout(
         user=user,
         exercise=exercise,
-        group_size=exercise["group_size"],
-        planned_weight=planned_weight,
-        planned_reps=planned_reps,
+        group_size=safe_get(exercise, "group_size", "Small"),
+        planned_weight=recommended_weight,
+        planned_reps=recommended_reps,
         uses_bodyweight=uses_bodyweight,
         session_exercise_row=session_exercise,
         sets_payload=sets_payload,

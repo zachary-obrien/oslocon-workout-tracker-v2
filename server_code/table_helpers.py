@@ -147,8 +147,7 @@ def search_exercises_by_query(query, limit=25):
 
   filtered = [
     r for r in rows
-    if q in normalize_for_match(safe_get(r, "name", ""))
-    or q in normalize_for_match(safe_get(r, "normalized_name", None) or safe_get(r, "name", ""))
+    if q in normalize_for_match(safe_get(r, "name", "")) or q in normalize_for_match(safe_get(r, "normalized_name", None) or safe_get(r, "name", ""))
   ]
   filtered.sort(key=score)
   return filtered[:limit]
@@ -163,6 +162,7 @@ def get_exercise_images(exercise):
 def get_first_exercise_image(exercise):
   rows = get_exercise_images(exercise)
   return rows[0] if rows else None
+
 
 
 def get_workout_draft(user, workout_day):
@@ -189,7 +189,6 @@ def clear_workout_draft(user, workout_day):
   if row is not None:
     row.delete()
   return True
-
 
 
 def draft_is_fresh(draft_row, max_hours=24):
