@@ -16,6 +16,8 @@ PRIMARY_ROLE = "button-primary"
 class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
   def __init__(self, history_items=None, exercise_name=None, context_exercise_id=None, context_day_code=None, current_muscle_group=None, **properties):
     self.init_components(**properties)
+    self.spacing_above = "none"
+    self.spacing_below = "none"
     self.history_items = history_items or anvil.server.call("get_recent_history", 100)
     self.exercise_name = exercise_name
     self.context_exercise_id = str(context_exercise_id) if context_exercise_id not in (None, "") else None

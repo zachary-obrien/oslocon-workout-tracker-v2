@@ -17,6 +17,8 @@ MODE_LABELS = {
 class ExerciseDetailsModal(ExerciseDetailsModalTemplate):
   def __init__(self, exercise_id=None, initial_tab="detail", current_day_code=None, **properties):
     self.init_components(**properties)
+    self.spacing_above = "none"
+    self.spacing_below = "none"
     self.exercise_id = exercise_id
     self.current_day_code = current_day_code
     self.active_tab = initial_tab if initial_tab in ("detail", "history") else "detail"
