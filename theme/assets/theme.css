@@ -1,59 +1,70 @@
-.anvil-role-history-entry-card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0)) !important;
-  border: 1px solid #1f2a39 !important;
-  border-radius: 12px !important;
-  color: #f3f6fb !important;
-  padding: 8px 10px !important;
-  box-sizing: border-box !important;
-}
-
-.anvil-role-history-entry-card .col-padding,
-.anvil-role-history-entry-card .col-padding-medium,
-.anvil-role-history-entry-card .anvil-panel-section-gutter {
+html, body {
+  margin: 0 !important;
   padding: 0 !important;
 }
 
-.anvil-role-history-entry-card .anvil-panel-section {
+.anvil-role-app-root,
+.anvil-role-shell-host {
+  padding: 0 !important;
   margin: 0 !important;
+  background: transparent !important;
 }
 
-.history-day {
-  font-weight: 800;
-  color: #f3f6fb;
-  line-height: 1.15;
-  margin: 0 0 4px 0;
+/* Dark modal shell */
+.modal-content {
+  background: #0a1118 !important;
+  border: 1px solid #1f2a39 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28) !important;
+  background-clip: border-box !important;
 }
 
-.history-time {
-  color: #97a5b7;
-  line-height: 1.2;
-  margin: 0 0 6px 0;
+/* Remove bootstrap white banding */
+.modal-body {
+  padding: 0 !important;
+  background: #0a1118 !important;
 }
 
-.history-tiles {
-  line-height: 1;
-  margin: 0;
+/* Keep headers/footers functional for system modals. */
+.modal-header,
+.modal-footer {
+  background: #0a1118 !important;
+  border-color: #1f2a39 !important;
 }
 
-.anvil-role-history-entry-card .flow-panel {
-  margin-top: 8px !important;
-}
-
-.anvil-role-history-entry-card .anvil-button {
+/* Top-level Anvil wrapper inside modal */
+.modal-body > .anvil-container,
+.modal-body > .column-panel,
+.modal-body > .anvil-component {
+  background: #0a1118 !important;
   margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Reduced inner spacing for Anvil-generated gutters */
+.modal-body .col-padding,
+.modal-body .col-padding-medium,
+.modal-body .anvil-panel-section-gutter {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep modal content dark and readable */
+.modal-body .column-panel.anvil-container,
+.modal-body .flow-panel.anvil-container,
+.modal-body .anvil-panel-section-container,
+.modal-body .anvil-panel-section {
+  background: transparent !important;
+  color: #f3f6fb !important;
 }
 
 @media (max-width: 720px) {
-  .anvil-role-history-entry-card {
-    padding: 7px 8px !important;
-    border-radius: 10px !important;
-  }
-
-  .history-day {
-    margin-bottom: 3px;
-  }
-
-  .history-time {
-    margin-bottom: 5px;
+  .modal-body .col-padding,
+  .modal-body .col-padding-medium,
+  .modal-body .anvil-panel-section-gutter {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
   }
 }
