@@ -19,15 +19,15 @@ container:
           .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
           .row.space-between{justify-content:space-between}
           .right{justify-content:flex-end}
+          .hero-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:nowrap}
+          .hero-left{min-width:0;flex:1 1 auto}
+          .hero-right{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:nowrap}
+          .hero-left .title,.hero-left .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          @media (max-width:720px){.hero-head{align-items:flex-start}.hero-right{gap:6px}.hero-left .title{font-size:18px}}
           .muted{color:var(--muted);font-size:13px;line-height:1.2}
           .title{font-size:19px;line-height:1.08;font-weight:800;letter-spacing:-.02em;margin:0}
           .summary-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
           .summary-stat{color:var(--muted);font-size:12px}
-          .draft-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
-          .draft-banner-text{display:flex;flex-direction:column;gap:2px;min-width:0}
-          .draft-banner-title{font-size:12px;font-weight:800;color:var(--text)}
-          .draft-banner-sub{font-size:11px;color:var(--muted)}
-          .saved-pill{font-size:11px;color:var(--muted)}
           .pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;line-height:1}
           .btn{border:1px solid transparent;border-radius:12px;padding:7px 12px;cursor:pointer;background:linear-gradient(180deg,var(--accent-strong),var(--accent));color:#fff;font-weight:800;font-size:14px;line-height:1.1;white-space:nowrap}
           .btn.secondary{background:linear-gradient(180deg,#202b39,#1a2431);color:var(--text);border-color:var(--border)}
@@ -37,39 +37,27 @@ container:
           .day-select, .select{border:1px solid var(--border);background:var(--input);color:var(--text);outline:none;border-radius:10px}
           .day-select{min-width:92px;height:28px;padding:4px 9px;font-size:12px}
           .select{height:26px;padding:0 6px;font-size:13px}
-          .hero-topline{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
-          .hero-name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-          .hero-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-          .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:visible;isolation:isolate}
+          .exercise-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:4px;overflow:hidden}
           .exercise-card.done{border-color:rgba(31,163,106,.34);background:linear-gradient(180deg, rgba(31,163,106,.10), rgba(31,163,106,.03)), var(--card)}
           .exercise-card.partial{border-color:rgba(217,141,43,.34);background:linear-gradient(180deg, rgba(217,141,43,.10), rgba(217,141,43,.03)), var(--card)}
           .exercise-card.skipped{border-color:rgba(198,81,81,.34);background:linear-gradient(180deg, rgba(198,81,81,.10), rgba(198,81,81,.03)), var(--card)}
-          .exercise-header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(180deg, rgba(20,28,38,.96), rgba(20,28,38,.90));padding:4px 8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius)}
+          .exercise-header{display:flex;align-items:center;justify-content:space-between;gap:8px;background:linear-gradient(180deg, rgba(20,28,38,.96), rgba(20,28,38,.90));padding:4px 8px;border-top-left-radius:var(--radius);border-top-right-radius:var(--radius)}
           .exercise-title-wrap,.exercise-actions{display:flex;align-items:center;gap:8px;min-height:30px}.exercise-title-wrap{min-width:0;flex:1}.exercise-title-wrap .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-          .menu-wrap{position:relative;z-index:3}
+          .menu-wrap{position:relative}
           .menu-panel{position:absolute;right:0;top:calc(100% + 6px);min-width:154px;background:linear-gradient(180deg, rgba(28,38,52,.98), rgba(21,29,40,.98));border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;z-index:2000}
           .menu-panel.left{left:0;right:auto}
           .menu-item{width:100%;background:transparent;color:var(--text);border:none;text-align:left;padding:8px 11px;font-size:13px;cursor:pointer;white-space:nowrap}.menu-item:hover{background:rgba(255,255,255,.05)}.menu-item.danger{color:#ffcfbf}
-          .set-list{position:relative;display:flex;flex-direction:column;gap:0;padding:0 6px 6px;overflow:visible}
-          .set-row{position:relative;display:grid;grid-template-columns:30px 1fr 24px;align-items:center;gap:4px;background:rgba(255,255,255,.01);border:1px solid var(--border-soft);border-radius:0;padding:2px 6px;min-height:32px;margin-top:-1px;box-shadow:none}
-          .set-row:first-child{margin-top:0;border-top-left-radius:10px;border-top-right-radius:10px}
-          .set-row:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px}
-          .set-row.done{background:linear-gradient(180deg, rgba(31,163,106,.16), rgba(31,163,106,.07));border-color:rgba(31,163,106,.34)}
+          .set-list{display:flex;flex-direction:column;gap:2px;padding:0 6px 6px}
+          .set-row{position:relative;display:grid;grid-template-columns:30px 1fr 24px;align-items:center;gap:4px;background:linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,0)), var(--card);border:1px solid var(--border-soft);border-radius:12px;padding:1px 5px;min-height:30px}
+          .set-row.done{background:linear-gradient(180deg, rgba(31,163,106,.18), rgba(31,163,106,.08)), #16271e;border-color:rgba(31,163,106,.34)}
           .set-controls{display:flex;align-items:center;gap:2px}.set-unit{color:var(--muted);font-size:11px;line-height:1}
           .check-btn{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:transparent;color:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800}.check-btn.checked{background:var(--success);color:#fff;border-color:rgba(31,163,106,.7)}
           .exercise-summary{padding:5px 8px 7px;color:var(--muted);font-size:13px;line-height:1.2}
           .sticky-submit{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:100;width:min(920px, calc(100vw - 10px));padding:0 0 4px;background:linear-gradient(180deg, rgba(10,15,20,0), rgba(10,15,20,.92) 28%, rgba(10,15,20,1) 100%)}
           .sticky-submit .card{padding:5px 5px 3px;margin-bottom:0}.full-width{width:100%}.credit{display:none}
-          .menu-portal{position:fixed;inset:0;z-index:5000;pointer-events:none}
-          .menu-portal .menu-panel{position:absolute;pointer-events:auto;min-width:154px}
           .modal-overlay{position:fixed;inset:0;background:rgba(5,8,12,.76);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}.modal-card{width:100%;max-width:560px;max-height:90vh;overflow:auto;background:linear-gradient(180deg, rgba(24,33,45,.98), rgba(18,25,35,.98));border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px}
           .modal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.modal-title{font-size:19px;font-weight:800}.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.modal-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.center-row{display:flex;justify-content:center;margin-top:8px}.share-block{border:1px solid var(--border);background:rgba(255,255,255,.02);border-radius:14px;padding:14px;margin-top:12px}.tile-row{display:flex;flex-wrap:wrap;gap:6px}.tile{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.10)}.tile.green{background:var(--success)}.tile.orange{background:var(--warning)}.tile.red{background:var(--danger)}.tile.gray{background:var(--neutral)}
-          .history-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-          .history-card-title{font-weight:700}
-          .history-card-date{margin-top:4px}
-          .history-share{margin-top:8px;white-space:pre-wrap;line-height:1.25}
-          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}.hero-name{max-width:none}.hero-actions{gap:6px}}
+          @media (max-width:720px){.wrap{padding:5px 5px 88px}.card{padding:7px;border-radius:16px}.exercise-header{padding:4px 7px}.title{font-size:18px}.menu-panel{min-width:142px}.sticky-submit{width:calc(100vw - 10px)}}
         </style>
 
         <div class="wrap">
@@ -84,10 +72,12 @@ container:
 
           <div id="workoutArea" class="hidden">
             <div class="card hero-card">
-              <div class="hero-topline" style="margin-bottom:0;position:relative">
-                <div class="title hero-name" id="who"></div>
-                <div class="muted hero-day" id="dayHelper"></div>
-                <div class="hero-actions">
+              <div class="hero-head" style="margin-bottom:0;position:relative">
+                <div class="hero-left">
+                  <div class="title" id="who"></div>
+                  <div class="muted" id="dayHelper" style="margin-top:2px"></div>
+                </div>
+                <div class="hero-right">
                   <select id="daySelector" class="day-select" onchange="loadDisplayedDay(this.value)"></select>
                   <div class="menu-wrap">
                     <button class="btn secondary small icon-btn" onclick="toggleTopMenu(event)">⋯</button>
@@ -102,7 +92,6 @@ container:
                 </div>
               </div>
               <div class="summary-row" id="heroProgress"></div>
-              <div id="draftBanner" class="hidden" style="margin-top:8px"></div>
             </div>
 
             <div id="exerciseList"></div>
@@ -116,166 +105,14 @@ container:
         </div>
 
         <div id="modalRoot" class="hidden"></div>
-        <div id="menuPortal" class="menu-portal hidden" data-menu-type=""></div>
 
         <script>
           let appState = {activeEmail:'', registrationRequired:false, user:{}, workout:null, completionSummary:null};
           let suppressAutoComplete = false;
           let autoPrompted = false;
-          let activeHistoryItems = [];
-          let activeHistoryTitle = 'Workout History';
-          let exerciseSearchTimer = null;
-          let exerciseSearchToken = 0;
-          let latestExerciseSearchToken = 0;
-          let currentExerciseSearchResults = [];
-          let draftSaveTimer = null;
-          let autoCompleteTimer = null;
-          let draftSaveInflight = null;
 
           function py(method, ...args){
             return anvil.call(document.getElementById('app-root'), method, ...args);
-          }
-
-          function titleCaseWords(value){
-            return String(value || '').toLowerCase().replace(/\b([a-z])/g, (_, ch) => ch.toUpperCase());
-          }
-
-          function formatLocalDateTime(value){
-            if (!value) return '';
-            if (typeof value === 'string' && /\d{1,2}-\d{1,2}-\d{4}/.test(value)) return value;
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return String(value);
-            return new Intl.DateTimeFormat([], {month:'2-digit', day:'2-digit', year:'numeric', hour:'numeric', minute:'2-digit'}).format(date);
-          }
-
-          function extractTileStatesFromShareText(text){
-            const raw = String(text || '');
-            if (!raw) return [];
-            const emojiMap = {'🟩':'green','🟧':'orange','🟥':'red','⬜':'gray','⬛':'gray'};
-            const chars = Array.from(raw).filter(ch => emojiMap[ch]);
-            return chars.map(ch => emojiMap[ch]);
-          }
-
-          function renderTileRow(tileStates, extraStyle){
-            const states = Array.isArray(tileStates) ? tileStates : [];
-            if (!states.length) return '';
-            return `<div class="tile-row"${extraStyle ? ` style="${extraStyle}"` : ''}>${states.map(t => `<span class="tile ${escapeHtml(t)}"></span>`).join('')}</div>`;
-          }
-
-
-          function cloneJson(value){
-            return JSON.parse(JSON.stringify(value));
-          }
-
-          function snapshotWorkoutForDraft(workout){
-            if (!workout || !Array.isArray(workout.exercises)) return null;
-            return {
-              current_day: workout.current_day,
-              saved_at_ms: Date.now(),
-              exercises: workout.exercises.map(ex => ({
-                slot_number: ex.slot_number,
-                exercise_id: ex.exercise_id,
-                is_unassigned: !!ex.is_unassigned,
-                uses_bodyweight: !!ex.uses_bodyweight,
-                recommended_weight: ex.recommended_weight,
-                recommended_reps: ex.recommended_reps,
-                status: ex.status,
-                collapsed: ex.collapsed,
-                sets: Array.isArray(ex.sets) ? ex.sets.map((s, idx) => ({
-                  set_index: s.set_index || idx + 1,
-                  weight: s.weight,
-                  reps: s.reps,
-                  performed: !!s.performed,
-                  auto_completed: !!s.auto_completed
-                })) : []
-              }))
-            };
-          }
-
-          function updateSavedIndicator(updatedAt){
-            if (updatedAt) appState.lastDraftSavedAt = updatedAt;
-            renderDraftBanner();
-          }
-
-          async function persistDraftNow(){
-            if (appState.registrationRequired || !appState.workout || !appState.workout.current_day) return null;
-            const payload = snapshotWorkoutForDraft(appState.workout);
-            if (!payload) return null;
-            try {
-              draftSaveInflight = py('py_save_workout_draft', appState.workout.current_day, payload);
-              const result = await draftSaveInflight;
-              appState.workout.draft_state = {
-                has_draft: true,
-                updated_at: (result || {}).updated_at || new Date().toISOString()
-              };
-              updateSavedIndicator((result || {}).updated_at || new Date().toISOString());
-              return result;
-            } catch (err) {
-              return null;
-            } finally {
-              draftSaveInflight = null;
-            }
-          }
-
-          function persistDraftSoon(delay){
-            clearTimeout(draftSaveTimer);
-            draftSaveTimer = setTimeout(() => { persistDraftNow(); }, typeof delay === 'number' ? delay : 800);
-          }
-
-          function updateExerciseStatusFromSets(ex){
-            if (!ex || ex.is_unassigned) return;
-            if (ex.status === 'skipped') {
-              ex.collapsed = true;
-              return;
-            }
-            const sets = Array.isArray(ex.sets) ? ex.sets : [];
-            const allPerformed = !!sets.length && sets.every(s => !!s.performed);
-            ex.status = allPerformed ? 'completed' : 'active';
-            ex.collapsed = allPerformed ? (ex.collapsed !== false) : false;
-          }
-
-          function mergePreservedSetState(previousExercise, nextExercise){
-            if (!previousExercise || !nextExercise) return;
-            const previousSets = Array.isArray(previousExercise.sets) ? previousExercise.sets : [];
-            const mergedSets = Array.isArray(nextExercise.sets) ? nextExercise.sets.slice() : [];
-
-            if (!previousSets.length && !(previousExercise.status === 'skipped')) return;
-
-            previousSets.forEach((oldSet, idx) => {
-              const preserved = {
-                weight: oldSet.weight,
-                reps: oldSet.reps,
-                performed: !!oldSet.performed,
-                auto_completed: !!oldSet.auto_completed,
-              };
-              if (idx >= mergedSets.length) {
-                mergedSets.push(preserved);
-              } else {
-                mergedSets[idx] = {...mergedSets[idx], ...preserved};
-              }
-            });
-
-            nextExercise.sets = mergedSets;
-            nextExercise.recommended_weight = previousExercise.recommended_weight ?? nextExercise.recommended_weight;
-            nextExercise.recommended_reps = previousExercise.recommended_reps ?? nextExercise.recommended_reps;
-            if (previousExercise.status === 'skipped') {
-              nextExercise.status = 'skipped';
-              nextExercise.collapsed = true;
-            } else {
-              updateExerciseStatusFromSets(nextExercise);
-              if (nextExercise.status === 'completed') nextExercise.collapsed = previousExercise.collapsed !== false;
-            }
-          }
-
-          function queueAutoCompleteCheck(){
-            clearTimeout(autoCompleteTimer);
-            autoCompleteTimer = setTimeout(() => {
-              if (suppressAutoComplete || autoPrompted) return;
-              if (allDoneOrSkipped()) {
-                autoPrompted = true;
-                showAutoCompleteModal();
-              }
-            }, 0);
           }
 
           function bootstrapApp(payload){
@@ -284,21 +121,17 @@ container:
               registrationRequired: !!payload.registrationRequired,
               user: payload.user || {},
               workout: payload.workout || null,
-              completionSummary: null,
-              lastDraftSavedAt: payload.workout?.draft_state?.updated_at || null
+              completionSummary: null
             };
             renderApp();
             document.addEventListener('click', handleGlobalClick);
-            queueAutoCompleteCheck();
           }
 
           function updateWorkout(payload){
             appState.workout = payload || null;
-            if (payload?.draft_state?.updated_at) appState.lastDraftSavedAt = payload.draft_state.updated_at;
             autoPrompted = false;
             suppressAutoComplete = false;
             renderApp();
-            queueAutoCompleteCheck();
           }
 
           function acceptSubmissionResult(result){
@@ -325,7 +158,6 @@ container:
             renderDaySelector();
             renderDayHelper();
             renderHeroProgress();
-            renderDraftBanner();
             renderExercises();
           }
 
@@ -338,10 +170,10 @@ container:
           }
 
           function renderDayHelper(){
-            const el = document.getElementById('dayHelper');
-            if (!el) return;
-            el.textContent = '';
-            el.style.display = 'none';
+            const w = appState.workout || {};
+            const current = w.current_day || '';
+            const next = w.next_scheduled_day || current;
+            document.getElementById('dayHelper').textContent = current===next ? `Displayed Workout: Day ${current}` : `Displayed Workout: Day ${current} • Next scheduled: Day ${next}`;
           }
 
           function renderHeroProgress(){
@@ -357,20 +189,6 @@ container:
             if(remaining) parts.push(`${remaining} remaining`);
             parts.push(`Progress after ${rule} qualifying workouts`);
             hero.innerHTML = parts.map((p,i)=>`${i?'<span class="summary-stat">•</span>':''}<span class="summary-stat">${escapeHtml(p)}</span>`).join(' ');
-          }
-
-          function renderDraftBanner(){
-            const host = document.getElementById('draftBanner');
-            if (!host) return;
-            const draft = appState.workout?.draft_state || {};
-            if (!draft.has_draft) {
-              host.classList.add('hidden');
-              host.innerHTML = '';
-              return;
-            }
-            const updated = formatLocalDateTime(draft.updated_at || appState.lastDraftSavedAt);
-            host.classList.remove('hidden');
-            host.innerHTML = `<div class="draft-banner"><div class="draft-banner-text"><div class="draft-banner-title">Resumed found workout</div><div class="draft-banner-sub">${updated ? `Last saved ${escapeHtml(updated)}` : 'Workout automatically restored'}</div></div><div class="row right" style="margin-left:auto"><button class="btn secondary small" onclick="clearCurrentWorkoutChanges()">Clear resumed workout</button></div></div>`;
           }
 
           function renderExercises(){
@@ -397,7 +215,7 @@ container:
           function renderCollapsedExercise(ex, idx){
             return `<div class="exercise-header">
               <div class="exercise-title-wrap"><div class="title">${escapeHtml(ex.exercise_label)}</div></div>
-              <div class="exercise-actions"><span class="pill">${escapeHtml(titleCaseWords(ex.muscle_group || 'Unassigned'))}</span><button class="btn secondary small" onclick="editCollapsed(${idx})">Edit</button></div>
+              <div class="exercise-actions"><span class="pill">${escapeHtml((ex.muscle_group || 'Unassigned'))}</span><button class="btn secondary small" onclick="editCollapsed(${idx})">Edit</button></div>
             </div>
             <div class="exercise-summary">${escapeHtml(collapsedSummary(ex))}</div>`;
           }
@@ -413,23 +231,36 @@ container:
           function renderExpandedExercise(ex, idx){
             return `<div class="exercise-header">
               <div class="exercise-title-wrap"><div class="title">${escapeHtml(ex.exercise_label)}</div></div>
-              <div class="exercise-actions"><span class="pill">${escapeHtml(titleCaseWords(ex.muscle_group || 'Unassigned'))}</span>${renderExerciseMenuButton(idx,true)}</div>
+              <div class="exercise-actions"><span class="pill">${escapeHtml(ex.muscle_group || 'Unassigned')}</span>${renderExerciseMenuButton(idx,true)}</div>
             </div>
             <div class="set-list">${(ex.sets||[]).map((s,i)=>renderSetRow(ex, idx, s, i)).join('')}</div>`;
           }
 
           function renderExerciseMenuButton(idx, assigned){
-            return `<div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleExerciseMenu(event,${idx})">⋯</button></div>`;
+            const ex = appState.workout.exercises[idx];
+            return `<div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleExerciseMenu(event,${idx})">⋯</button>
+              <div class="menu-panel hidden" id="exercise-menu-${idx}">
+                ${assigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : ''}
+                <button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>
+                <button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>
+                <button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>
+                <button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>
+                ${assigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : ''}
+              </div></div>`;
           }
 
           function renderSetRow(ex, exIdx, setObj, setIdx){
             const weightOptions = ex.uses_bodyweight ? `<option value="BW" ${['BW','',null].includes(setObj.weight)?'selected':''}>BW</option>` : buildWeightOptions(setObj.weight);
             const repOptions = buildRepOptions(setObj.reps);
             return `<div class="set-row ${setObj.performed?'done':''}">
-              <div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleSetMenu(event,${exIdx},${setIdx})">⋯</button></div>
+              <div class="menu-wrap"><button class="btn secondary small icon-btn" onclick="toggleSetMenu(event,${exIdx},${setIdx})">⋯</button>
+                <div class="menu-panel left hidden" id="set-menu-${exIdx}-${setIdx}">
+                  <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
+                  <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>
+                </div></div>
               <div class="set-controls">
                 <select class="select" id="w-${exIdx}-${setIdx}" onchange="setValueChanged(${exIdx},${setIdx})">${weightOptions}</select>
-                ${ex.uses_bodyweight ? "" : "<span class=\"set-unit\">lb</span>"}
+                ${ex.uses_bodyweight ? '' : '<span class="set-unit">lb</span>'}
                 <select class="select" id="r-${exIdx}-${setIdx}" onchange="setValueChanged(${exIdx},${setIdx})">${repOptions}</select>
                 <span class="set-unit">reps</span>
               </div>
@@ -464,6 +295,41 @@ container:
             return `Completed · ${checked}/${sets.length} sets checked · ${weightText} · avg ${avg} reps`;
           }
 
+          function buildDraftPayload(){
+            const workout = appState.workout || {};
+            return {
+              current_day: workout.current_day,
+              exercises: (workout.exercises || []).map(ex => ({
+                slot_number: ex.slot_number,
+                exercise_id: ex.exercise_id,
+                status: ex.status,
+                collapsed: !!ex.collapsed,
+                sets: (ex.sets || []).map((s, idx) => ({
+                  set_index: s.set_index || (idx + 1),
+                  weight: s.weight,
+                  reps: Number(s.reps || 0),
+                  performed: !!s.performed,
+                  auto_completed: !!s.auto_completed,
+                }))
+              }))
+            };
+          }
+
+          async function persistDraftNow(){
+            if(!appState.workout || !appState.workout.current_day) return null;
+            try {
+              return await py('py_save_workout_draft', buildDraftPayload());
+            } catch(err) {
+              console.error(err);
+              return null;
+            }
+          }
+
+          function persistDraftSoon(){
+            clearTimeout(appState.draftSaveTimer);
+            appState.draftSaveTimer = setTimeout(() => { persistDraftNow(); }, 600);
+          }
+
           async function registerCurrentUser(){
             const name = document.getElementById('registerName').value.trim();
             if(!name) return;
@@ -472,63 +338,25 @@ container:
             appState.workout = data.workout || data;
             appState.user = appState.workout?.resolvedUser || appState.user;
             renderApp();
-            persistDraftSoon(20);
           }
 
-          async function loadDisplayedDay(dayCode){
-            if(!dayCode) return;
-            await persistDraftNow();
-            const payload = await py('py_load_workout_day', dayCode);
-            appState.workout = payload;
-            autoPrompted = false;
-            suppressAutoComplete = false;
-            renderApp();
-            persistDraftSoon(20);
-            queueAutoCompleteCheck();
-          }
-
-          async function addExerciseSlot(){
-            await persistDraftNow();
-            const payload = await py('py_add_exercise_slot');
-            appState.workout = payload;
-            renderApp();
-            persistDraftSoon(20);
-          }
-
-          async function addWorkoutDay(){
-            await persistDraftNow();
-            const payload = await py('py_add_workout_day');
-            appState.workout = payload;
-            autoPrompted = false;
-            suppressAutoComplete = false;
-            renderApp();
-            persistDraftSoon(20);
-            const firstEmptyIdx = (appState.workout?.exercises || []).findIndex(ex => ex.is_unassigned);
-            if (firstEmptyIdx >= 0) {
-              setTimeout(() => openChangeExercise(firstEmptyIdx), 0);
-            }
-          }
-
-          async function removeCurrentWorkoutDay(){ await persistDraftNow(); const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); }
-          async function moveExercise(idx, dir){ await persistDraftNow(); const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); }
-          async function removeExercise(idx){ await persistDraftNow(); const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); }
-          function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); persistDraftSoon(); queueAutoCompleteCheck(); }
+          async async function loadDisplayedDay(dayCode){ if(!dayCode) return; if(appState.workout?.current_day){ await persistDraftNow(); } const payload = await py('py_load_workout_day', dayCode); appState.workout = payload; renderApp(); }
+          async function addExerciseSlot(){ const payload = await py('py_add_exercise_slot'); appState.workout = payload; renderApp(); }
+          async function addWorkoutDay(){ const payload = await py('py_add_workout_day'); appState.workout = payload; renderApp(); }
+          async function removeCurrentWorkoutDay(){ const payload = await py('py_remove_current_workout_day'); appState.workout = payload; renderApp(); }
+          async function moveExercise(idx, dir){ const ex = appState.workout.exercises[idx]; const payload = await py('py_move_exercise_slot', ex.slot_number, dir); appState.workout = payload; renderApp(); }
+          async function removeExercise(idx){ const ex = appState.workout.exercises[idx]; const payload = await py('py_remove_exercise_slot', ex.slot_number); appState.workout = payload; renderApp(); }
+          function skipExercise(idx){ const ex = appState.workout.exercises[idx]; ex.status='skipped'; ex.collapsed=true; renderApp(); persistDraftSoon(); }
           function editCollapsed(idx){ appState.workout.exercises[idx].collapsed=false; appState.workout.exercises[idx].status='active'; suppressAutoComplete = true; renderApp(); persistDraftSoon(); }
 
           function setValueChanged(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
-            const nextWeight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
-            const nextReps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
-            ex.sets[setIdx].weight = nextWeight;
-            ex.sets[setIdx].reps = nextReps;
+            ex.sets[setIdx].weight = document.getElementById(`w-${exIdx}-${setIdx}`).value;
+            ex.sets[setIdx].reps = Number(document.getElementById(`r-${exIdx}-${setIdx}`).value);
             for(let i=setIdx+1;i<ex.sets.length;i++){
               if(ex.sets[i].performed) continue;
-              ex.sets[i].weight = nextWeight;
-              ex.sets[i].reps = nextReps;
-              const weightEl = document.getElementById(`w-${exIdx}-${i}`);
-              const repsEl = document.getElementById(`r-${exIdx}-${i}`);
-              if(weightEl) weightEl.value = nextWeight;
-              if(repsEl) repsEl.value = String(nextReps);
+              ex.sets[i].weight = ex.sets[setIdx].weight;
+              ex.sets[i].reps = ex.sets[setIdx].reps;
             }
             persistDraftSoon();
           }
@@ -537,210 +365,64 @@ container:
             const ex = appState.workout.exercises[exIdx];
             const s = ex.sets[setIdx];
             s.performed = !s.performed;
-            updateExerciseStatusFromSets(ex);
+            if(ex.sets.every(x=>x.performed)){ ex.status='completed'; ex.collapsed=true; }
+            else if(ex.status !== 'skipped'){ ex.status='active'; }
             renderApp();
             persistDraftSoon();
-            queueAutoCompleteCheck();
+            if(!suppressAutoComplete) maybeAutoComplete();
           }
 
           function addSetBelow(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
             const src = {...ex.sets[setIdx], performed:false, auto_completed:false};
             ex.sets.splice(setIdx+1,0,src);
-            updateExerciseStatusFromSets(ex);
             renderApp();
             persistDraftSoon();
-            queueAutoCompleteCheck();
           }
           function deleteSet(exIdx,setIdx){
             const ex = appState.workout.exercises[exIdx];
             if(ex.sets.length>1) ex.sets.splice(setIdx,1); else { ex.sets[0].performed=false; ex.sets[0].auto_completed=false; }
-            updateExerciseStatusFromSets(ex);
             renderApp();
             persistDraftSoon();
-            queueAutoCompleteCheck();
           }
 
-          function toggleTopMenu(e){
-            e.stopPropagation();
-            closePortalMenu();
-            const el=document.getElementById('top-menu');
-            document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el && !x.closest('#menuPortal')) x.classList.add('hidden'); });
-            el.classList.toggle('hidden');
-          }
-
-          function openPortalMenu(anchorEl, html, align){
-            const portal = document.getElementById('menuPortal');
-            if (!portal) return;
-            portal.classList.remove('hidden');
-            portal.innerHTML = `<div class="menu-panel ${align==='left'?'left':''}" data-portal-menu="1">${html}</div>`;
-            const panel = portal.querySelector('[data-portal-menu="1"]');
-            if (!panel || !anchorEl) return;
-            const rect = anchorEl.getBoundingClientRect();
-            const panelRect = panel.getBoundingClientRect();
-            let top = rect.bottom + 6;
-            let left = align === 'left' ? rect.left : rect.right - panelRect.width;
-            const pad = 8;
-            if (left + panelRect.width > window.innerWidth - pad) left = window.innerWidth - panelRect.width - pad;
-            if (left < pad) left = pad;
-            if (top + panelRect.height > window.innerHeight - pad) top = Math.max(pad, rect.top - panelRect.height - 6);
-            panel.style.top = `${top}px`;
-            panel.style.left = `${left}px`;
-          }
-
-          function closePortalMenu(){
-            const portal = document.getElementById('menuPortal');
-            if (!portal) return;
-            portal.classList.add('hidden');
-            portal.innerHTML = '';
-            portal.dataset.menuType = '';
-          }
-
-          function toggleExerciseMenu(e,idx){
-            e.stopPropagation();
-            const portal = document.getElementById('menuPortal');
-            const button = e.currentTarget || e.target;
-            if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `exercise-${idx}`){
-              closePortalMenu();
-              return;
-            }
-            closeMenus();
-            const ex = appState.workout.exercises[idx];
-            const html = [
-              !ex.is_unassigned ? `<button class="menu-item" onclick="openExerciseHistory(${idx}); closeMenus()">View history</button>` : '',
-              `<button class="menu-item" onclick="openChangeExercise(${idx}); closeMenus()">Change exercise</button>`,
-              `<button class="menu-item" ${ex.can_move_up?'':'disabled'} onclick="moveExercise(${idx},'up'); closeMenus()">Move up</button>`,
-              `<button class="menu-item" ${ex.can_move_down?'':'disabled'} onclick="moveExercise(${idx},'down'); closeMenus()">Move down</button>`,
-              `<button class="menu-item danger" onclick="removeExercise(${idx}); closeMenus()">Remove exercise</button>`,
-              !ex.is_unassigned ? `<button class="menu-item danger" onclick="skipExercise(${idx}); closeMenus()">Skip exercise</button>` : ''
-            ].join('');
-            openPortalMenu(button, html, 'right');
-            portal.dataset.menuType = `exercise-${idx}`;
-          }
-
-          function toggleSetMenu(e,exIdx,setIdx){
-            e.stopPropagation();
-            const portal = document.getElementById('menuPortal');
-            const button = e.currentTarget || e.target;
-            if (portal && !portal.classList.contains('hidden') && portal.dataset.menuType === `set-${exIdx}-${setIdx}`){
-              closePortalMenu();
-              return;
-            }
-            closeMenus();
-            const html = `
-              <button class="menu-item" onclick="addSetBelow(${exIdx},${setIdx}); closeMenus()">Add set below</button>
-              <button class="menu-item danger" onclick="deleteSet(${exIdx},${setIdx}); closeMenus()">Delete set</button>`;
-            openPortalMenu(button, html, 'left');
-            portal.dataset.menuType = `set-${exIdx}-${setIdx}`;
-          }
-
-          function closeMenus(){
-            document.querySelectorAll('.menu-panel').forEach(el=>{ if(!el.closest('#menuPortal')) el.classList.add('hidden'); });
-            closePortalMenu();
-          }
-          function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap') && !e.target.closest('#menuPortal')) closeMenus(); }
-
-          function focusExerciseSearchInput(){
-            setTimeout(() => {
-              const input = document.getElementById('exerciseSearch');
-              if (!input) return;
-              try {
-                input.focus();
-                input.select();
-              } catch (err) {}
-            }, 0);
-          }
-
-          function renderExerciseSearchResults(results, idx){
-            const host = document.getElementById('exerciseSearchResults');
-            if (!host) return;
-            currentExerciseSearchResults = results || [];
-            if (!currentExerciseSearchResults.length){
-              host.innerHTML = '<div class="muted">No matching exercises.</div>';
-              return;
-            }
-            host.innerHTML = currentExerciseSearchResults.map((r, resultIdx) => `
-              <button class="card" style="padding:8px;cursor:pointer;width:100%;text-align:left" onclick="pickExerciseResult(${idx}, ${resultIdx})">
-                <div style="font-weight:700">${escapeHtml(r.name)}</div>
-                <div class="muted">${escapeHtml(titleCaseWords(r.muscle_group || ''))}</div>
-              </button>
-            `).join('');
-          }
-
-          function scheduleExerciseSearch(idx, options){
-            const opts = options || {};
-            const input = document.getElementById('exerciseSearch');
-            if (!input) return;
-            const query = typeof opts.query === 'string' ? opts.query : input.value;
-            clearTimeout(exerciseSearchTimer);
-            const delay = opts.immediate ? 0 : 180;
-            const token = ++exerciseSearchToken;
-            latestExerciseSearchToken = token;
-            exerciseSearchTimer = setTimeout(() => performExerciseSearch(idx, query, token), delay);
-          }
-
-          async function performExerciseSearch(idx, query, token){
-            const host = document.getElementById('exerciseSearchResults');
-            if (host) host.innerHTML = '<div class="muted">Searching…</div>';
-            let results = [];
-            try {
-              results = await py('py_search_exercises', query || '');
-            } catch (err) {
-              if (token !== latestExerciseSearchToken) return;
-              if (host) host.innerHTML = '<div class="muted">Search failed.</div>';
-              return;
-            }
-            if (token !== latestExerciseSearchToken) return;
-            renderExerciseSearchResults(results, idx);
-          }
+          function toggleTopMenu(e){ e.stopPropagation(); const el=document.getElementById('top-menu'); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
+          function toggleExerciseMenu(e,idx){ e.stopPropagation(); const el=document.getElementById(`exercise-menu-${idx}`); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
+          function toggleSetMenu(e,exIdx,setIdx){ e.stopPropagation(); const el=document.getElementById(`set-menu-${exIdx}-${setIdx}`); document.querySelectorAll('.menu-panel').forEach(x=>{ if(x!==el) x.classList.add('hidden'); }); el.classList.toggle('hidden'); }
+          function closeMenus(){ document.querySelectorAll('.menu-panel').forEach(el=>el.classList.add('hidden')); }
+          function handleGlobalClick(e){ if(!e.target.closest('.menu-wrap')) closeMenus(); }
 
           async function openChangeExercise(idx){
             const current = appState.workout.exercises[idx];
-            const initialValue = current && !current.is_unassigned && current.exercise_label !== 'Select exercise' ? (current.exercise_label || '') : '';
             showModal(`
               <div class="modal-card">
                 <div class="modal-head"><div class="modal-title">Change Exercise</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div>
-                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="scheduleExerciseSearch(${idx})" />
+                <input id="exerciseSearch" class="select" style="width:100%;height:36px;padding:6px 10px" placeholder="Search exercises" oninput="searchExercises(${idx})" />
                 <div id="exerciseSearchResults" style="margin-top:10px"></div>
               </div>`);
             window.currentExerciseSlotIndex = idx;
-            const input = document.getElementById('exerciseSearch');
-            if (input) input.value = initialValue;
-            focusExerciseSearchInput();
-            scheduleExerciseSearch(idx, { query: initialValue, immediate: true });
+            await searchExercises(idx, current.exercise_label || '');
           }
 
-          async function pickExerciseResult(idx, resultIdx){
-            const result = currentExerciseSearchResults[resultIdx];
-            if (!result) return;
-            const previousExercise = cloneJson(appState.workout.exercises[idx] || {});
-            const slot = previousExercise.slot_number;
-            await persistDraftNow();
-            const payload = await py('py_assign_slot_exercise', slot, String(result.id != null ? result.id : result.exercise_id));
+          async function searchExercises(idx, initial){
+            const query = typeof initial === 'string' && initial ? initial : document.getElementById('exerciseSearch').value;
+            const results = await py('py_search_exercises', query || '');
+            const host = document.getElementById('exerciseSearchResults');
+            host.innerHTML = (results || []).map(r => `<div class="card" style="padding:8px;cursor:pointer" onclick="pickExercise(${idx}, ${r.id})"><div style="font-weight:700">${escapeHtml(r.name)}</div><div class="muted">${escapeHtml(r.muscle_group || '')}</div></div>`).join('');
+          }
+
+          async function pickExercise(idx, exerciseId){
+            const slot = appState.workout.exercises[idx].slot_number;
+            const payload = await py('py_assign_slot_exercise', slot, exerciseId);
             appState.workout = payload;
-            const nextExercise = (appState.workout?.exercises || []).find(ex => String(ex.slot_number) === String(slot)) || (appState.workout?.exercises || [])[idx];
-            mergePreservedSetState(previousExercise, nextExercise);
             closeModal();
             renderApp();
-            persistDraftSoon(20);
-            queueAutoCompleteCheck();
+            persistDraftSoon();
           }
 
           async function openHistoryModal(){
             const items = await py('py_get_recent_history');
             showHistory(items, 'Workout History');
-          }
-
-          async function clearCurrentWorkoutChanges(){
-            if (!appState.workout?.current_day) return;
-            clearTimeout(draftSaveTimer);
-            const payload = await py('py_clear_current_workout_changes', appState.workout.current_day);
-            appState.workout = payload;
-            appState.lastDraftSavedAt = null;
-            autoPrompted = false;
-            suppressAutoComplete = false;
-            renderApp();
-            queueAutoCompleteCheck();
           }
           async function openExerciseHistory(idx){
             const ex = appState.workout.exercises[idx];
@@ -748,42 +430,14 @@ container:
             showHistory(items, ex.exercise_label || 'Exercise History');
           }
           function showHistory(items, title){
-            activeHistoryItems = Array.isArray(items) ? items.slice() : [];
-            activeHistoryTitle = title || 'Workout History';
-            const cards = activeHistoryItems.map(item => {
-              const dateText = item.completed_at_display || formatLocalDateTime(item.completed_at || item.timestamp_ms || '');
-              const rawStatus = item.status || item.completion_bucket || '';
-              const status = String(rawStatus || '').toLowerCase() === 'standard' ? '' : rawStatus;
-              const share = item.share_text || '';
-              const tileStates = (Array.isArray(item.tile_states) && item.tile_states.length) ? item.tile_states : extractTileStatesFromShareText(share);
-              const tiles = renderTileRow(tileStates, 'margin-top:8px');
-              const copyDisabled = share ? '' : 'disabled';
-              const deleteButton = item.session_id ? `<button class="btn subtle" onclick="deleteHistorySession('${escapeAttr(item.session_id)}')">Delete</button>` : '';
-              return `<div class="card" style="padding:8px"><div class="history-card-top"><div><div class="history-card-title">${escapeHtml(item.day_code ? 'Day ' + item.day_code : (item.exercise_name || 'Workout'))}</div><div class="muted history-card-date">${escapeHtml(dateText)}</div>${status ? `<div class="muted">${escapeHtml(status)}</div>` : ''}${tiles}</div></div><div class="modal-actions"><button class="btn secondary" ${copyDisabled} onclick="copyHistoryText(this.dataset.shareText)" data-share-text="${escapeAttr(share)}">Copy</button>${deleteButton}</div></div>`;
-            }).join('') || '<div class="muted">No history yet.</div>';
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(activeHistoryTitle)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div>${cards}</div></div>`);
-          }
-          function copyHistoryText(text){ if(text) navigator.clipboard?.writeText(text); }
-          async function deleteHistorySession(sessionId){
-            if (!sessionId) return;
-            if (!window.confirm('Delete this workout history entry?')) return;
-            const previousItems = activeHistoryItems.slice();
-            activeHistoryItems = activeHistoryItems.filter(item => item.session_id !== sessionId);
-            showHistory(activeHistoryItems, activeHistoryTitle);
-            try {
-              await py('py_delete_history_session', sessionId);
-            } catch (err) {
-              activeHistoryItems = previousItems;
-              showHistory(activeHistoryItems, activeHistoryTitle);
-              window.alert('Delete failed. Please refresh and try again.');
-            }
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(title)}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div>${(items||[]).map(item=>`<div class="card" style="padding:8px"><div style="font-weight:700">${escapeHtml(item.completed_at || item.date || item.day_code || '')}</div><div class="muted">${escapeHtml(item.share_text || item.bucket || '')}</div></div>`).join('')}</div></div>`);
           }
 
           function openProgressionModal(){
             const value = appState.workout?.progression_settings?.progress_every_n_qualifying_workouts || 3;
             showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">Progression Settings</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">Progress after this many qualifying workouts.</div><div style="margin-top:10px"><select id="progressionSetting" class="select">${[1,2,3,4,5,6].map(v=>`<option value="${v}" ${v===value?'selected':''}>${v}</option>`).join('')}</select></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Close</button><button class="btn" onclick="saveProgressionSetting()">Save</button></div></div>`);
           }
-          async function saveProgressionSetting(){ await persistDraftNow(); const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); }
+          async function saveProgressionSetting(){ const v=Number(document.getElementById('progressionSetting').value); const payload=await py('py_update_progression_setting', v); appState.workout=payload; closeModal(); renderApp(); }
 
           function assignedExercises(){ return (appState.workout?.exercises || []).filter(e => !e.is_unassigned && e.exercise_id); }
           function allDoneOrSkipped(){ const arr=assignedExercises(); return arr.length && arr.every(ex => ex.status==='skipped' || (ex.sets||[]).every(s=>s.performed)); }
@@ -804,15 +458,12 @@ container:
               (ex.sets||[]).forEach(s => { if(!s.performed){ s.performed=true; s.auto_completed=true; }});
               ex.status='completed'; ex.collapsed=true;
             });
-            autoPrompted = true; suppressAutoComplete = true; renderApp(); persistDraftSoon(); showUnfinishedModal(true);
+            autoPrompted = true; suppressAutoComplete = true; renderApp(); showUnfinishedModal(true);
           }
 
           async function submitWorkout(){
             closeModal();
-            clearTimeout(draftSaveTimer);
-            persistDraftNow();
-            const completedDayCode = appState.workout.current_day;
-            const payload = { day_code: completedDayCode, exercises: [] };
+            const payload = { day_code: appState.workout.current_day, exercises: [] };
             (appState.workout.exercises || []).forEach(ex => {
               if(ex.is_unassigned || !ex.exercise_id) return;
               payload.exercises.push({
@@ -825,25 +476,23 @@ container:
                 sets: ex.sets || []
               });
             });
-            const result = await py('py_submit_workout', payload);
-            return result;
+            await py('py_submit_workout', payload);
           }
 
           function openCompletionModal(){
             const s = appState.completionSummary || {};
-            const tiles = renderTileRow(s.tile_states || []);
-            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div style="font-weight:700;margin-bottom:8px">Oslocon Workout!</div><div class="muted" style="margin-bottom:8px">${escapeHtml(s.date || '')}</div>${tiles}<div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div></div>`);
+            const tiles = (s.tile_states || []).map(t => `<span class="tile ${escapeHtml(t)}"></span>`).join('');
+            const share = escapeHtml(s.share_text || '');
+            showModal(`<div class="modal-card"><div class="modal-head"><div class="modal-title">${escapeHtml(s.headline || 'Workout Complete')}</div><button class="btn secondary small icon-btn" onclick="closeModal()">✕</button></div><div class="muted">${escapeHtml(s.message || '')}</div><div class="share-block"><div class="muted" style="margin-bottom:8px">${escapeHtml(s.date || '')}</div><div class="tile-row">${tiles}</div><pre style="white-space:pre-wrap;margin:12px 0 0;font-family:inherit">${share}</pre><div class="modal-actions"><button class="btn secondary" onclick="copyShareText()">Copy</button><button class="btn" onclick="closeModal()">Close</button></div></div></div>`);
           }
           function copyShareText(){ const s = appState.completionSummary || {}; navigator.clipboard?.writeText(s.share_text || ''); }
 
           function showModal(html){ const root=document.getElementById('modalRoot'); root.classList.remove('hidden'); root.innerHTML = `<div class="modal-overlay" onclick="overlayClick(event)">${html}</div>`; }
-          function closeModal(){ clearTimeout(exerciseSearchTimer); latestExerciseSearchToken = ++exerciseSearchToken; currentExerciseSearchResults = []; const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
+          function closeModal(){ const root=document.getElementById('modalRoot'); root.classList.add('hidden'); root.innerHTML=''; }
           function overlayClick(e){ if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
-          function escapeAttr(v){ return escapeHtml(v).replace(/'/g, '&#39;'); }
-          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); }
+          function escapeHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
         </script>
       </div>
-      type: HtmlTemplate
   type: HtmlTemplate
 is_package: true

@@ -81,10 +81,11 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
     except Exception:
       return []
 
-  def py_save_workout_draft(self, payload):
-    if not self.current_day:
+  def py_save_workout_draft(self, day_code, payload):
+    target_day = day_code or self.current_day
+    if not target_day:
       return None
-    return anvil.server.call('save_workout_draft', self.current_day, payload)
+    return anvil.server.call('save_workout_draft', target_day, payload)
 
   def py_clear_workout_draft(self):
     if not self.current_day:

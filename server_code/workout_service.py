@@ -144,6 +144,30 @@ def _serialize_draft_payload(workout_payload):
   }
 
 
+
+
+def _draft_state_payload(draft_row, resumed=False):
+  if not draft_row:
+    return {"has_draft": False, "updated_at": "", "resumed": False}
+  updated = draft_row["updated_at"] or draft_row["created_at"]
+  return {
+    "has_draft": True,
+    "updated_at": updated.isoformat() if updated else "",
+    "resumed": bool(resumed),
+  }
+
+
+def _targets_from_previous_summary(previous, fallback_weight, fallback_reps):
+  if not previous:
+    return {"weight": fallback_weight, "reps": fallback_reps}
+  sets = previous.get("sets") or []
+  for s in sets:
+    if s.get("performed"):
+      return {"weight": s.get("weight_value") if s.get("weight_value") is not None else fallback_weight, "reps": s.get("reps") or fallback_reps}
+  if previous.get("planned_weight") is not None or previous.get("planned_reps") is not None:
+    return {"weight": previous.get("planned_weight") if previous.get("planned_weight") is not None else fallback_weight, "reps": previous.get("planned_reps") or fallback_reps}
+  return {"weight": fallback_weight, "reps": fallback_reps}
+
 def _apply_draft_to_exercises(exercises, draft_payload):
   if not draft_payload:
     return False
@@ -214,6 +238,7 @@ def _serialize_slot(user, slot, day_slots):
   state = get_user_exercise_state(user, exercise)
   previous = get_previous_session_summary(user, exercise)
   strongest = get_strongest_session_summary(user, exercise)
+  seeded = _targets_from_previous_summary(previous, targets["weight"], targets["reps"])
   return {
     "slot_number": slot["slot_number"],
     "display_order": slot["display_order"],
@@ -226,8 +251,8 @@ def _serialize_slot(user, slot, day_slots):
     "base_target_reps": slot["base_target_reps"],
     "default_sets": slot["default_sets"],
     "uses_bodyweight": slot["uses_bodyweight"],
-    "recommended_weight": targets["weight"],
-    "recommended_reps": targets["reps"],
+    "recommended_weight": seeded["weight"],
+    "recommended_reps": seeded["reps"],
     "status": "active",
     "collapsed": False,
     "is_unassigned": False,
@@ -236,8 +261,8 @@ def _serialize_slot(user, slot, day_slots):
     "sets": [
       {
         "set_index": idx + 1,
-        "weight": targets["weight"],
-        "reps": targets["reps"],
+        "weight": seeded["weight"],
+        "reps": seeded["reps"],
         "performed": False,
         "auto_completed": False,
       }
@@ -267,11 +292,8 @@ def build_workout_payload(user, selected_day_code=None):
 
   draft_row = get_workout_draft(user, current_day)
   resumed = False
-  resumed_at = None
   if draft_is_fresh(draft_row, 24):
     resumed = _apply_draft_to_exercises(exercises, draft_row["draft_payload"] or {})
-    if resumed:
-      resumed_at = draft_row["updated_at"] or draft_row["created_at"]
 
   return {
     "resolvedUser": {
@@ -286,8 +308,7 @@ def build_workout_payload(user, selected_day_code=None):
     "progression_settings": {
       "progress_every_n_qualifying_workouts": int(user["progress_every_n_qualifying_workouts"] or 3)
     },
-    "resumed_draft": resumed,
-    "resumed_draft_updated_at": resumed_at.isoformat() if resumed_at else '',
+    "draft_state": _draft_state_payload(draft_row, resumed=resumed) if (draft_row and draft_is_fresh(draft_row, 24)) else {"has_draft": False, "updated_at": "", "resumed": False},
   }
 
 
@@ -567,5 +588,6 @@ def submit_workout(payload):
   session["completion_bucket"] = completion_bucket
   session["share_text"] = summary["share_text"]
 
+  clear_workout_draft_row(user, day)
   next_payload = build_workout_payload(user, None)
   return {"workout": next_payload, "completion_summary": summary, "completed_day_code": day_code}
