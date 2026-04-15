@@ -83,6 +83,18 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     states = item.get("tile_states") or []
     return "".join(EMOJIS.get(state, "⬜") for state in states)
 
+  def _make_card(self):
+    card = ColumnPanel()
+    card.background = CARD_BG
+    card.foreground = TEXT
+    card.spacing_above = "small"
+    card.spacing_below = "none"
+    try:
+      card.border = f"1px solid {BORDER}"
+    except Exception:
+      pass
+    return card
+
   def _build_ui(self):
     try:
       self.clear()
@@ -94,6 +106,8 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     root = ColumnPanel()
     root.background = APP_BG
     root.foreground = TEXT
+    root.spacing_above = "none"
+    root.spacing_below = "none"
     self.add_component(root)
 
     head = FlowPanel(align="justify", spacing="small")
@@ -126,9 +140,11 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       dd = DropDown(items=[("Select muscle…", None)] + [(m, m) for m in self._muscle_options()], selected_value=self.selected_muscle)
       dd.background = "#1b2634"
       dd.foreground = TEXT
+      dd.spacing_above = "small"
+      dd.spacing_below = "small"
       dd.set_event_handler("change", self._muscle_changed)
       root.add_component(dd)
-      root.add_component(Label(text=f"Exercise history for {self.selected_muscle}" if self.selected_muscle else "Choose a muscle group to see exercise history.", foreground=MUTED, spacing_above="small", spacing_below="small"))
+      root.add_component(Label(text=f"Exercise history for {self.selected_muscle}" if self.selected_muscle else "Choose a muscle group to see exercise history.", foreground=MUTED, spacing_above="none", spacing_below="small"))
 
     items = self.muscle_history_items if self.active_filter == "muscle_group" and self.selected_muscle else self._filtered_items()
     if not items:
@@ -136,15 +152,7 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       return
 
     for item in items:
-      card = ColumnPanel()
-      card.background = APP_BG
-      card.foreground = TEXT
-      try:
-        card.border = f"1px solid {BORDER}"
-      except Exception:
-        pass
-      card.spacing_above = "small"
-      card.spacing_below = "none"
+      card = self._make_card()
       if self.active_filter == "muscle_group" and self.selected_muscle:
         self._render_muscle_history_card(card, item)
       else:
@@ -157,7 +165,7 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     card.add_component(Label(text=item.get("completed_at_display") or "", foreground=MUTED, spacing_above="none", spacing_below="none"))
     tile_text = self._tile_text(item)
     if tile_text:
-      card.add_component(Label(text=tile_text, spacing_above="none", spacing_below="none"))
+      card.add_component(Label(text=tile_text, spacing_above="small", spacing_below="small"))
     button_row = FlowPanel(spacing="small")
     share = item.get("share_text") or ""
     copy_btn = Button(text="Copy", role=BTN_ROLE)
@@ -192,7 +200,7 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       reps = set_info.get("reps") or "—"
       set_bits.append(f"{idx}: {weight} × {reps}")
     if set_bits:
-      card.add_component(Label(text="  |  ".join(set_bits[:4]), foreground=MUTED, spacing_above="none", spacing_below="none"))
+      card.add_component(Label(text="  |  ".join(set_bits[:4]), foreground=MUTED, spacing_above="small", spacing_below="none"))
 
   def _muscle_changed(self, **event_args):
     sender = event_args.get("sender") if isinstance(event_args, dict) else None

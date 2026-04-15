@@ -137,257 +137,271 @@ def _lookup_exercise_reference(exercise_ref):
   return None
 
 
-def _serialize_draft_payload(workout_payload):
-  return {
-    "current_day": workout_payload.get("current_day"),
-    "saved_at": now().isoformat(),
-    "exercises": [
-      {
-        "slot_number": ex.get("slot_number"),
-        "exercise_id": ex.get("exercise_id"),
-        "status": ex.get("status"),
-        "collapsed": ex.get("collapsed"),
-        "set_mode": ex.get("set_mode") or "standard",
-        "sets": [
-          {
-            "set_index": s.get("set_index") or idx + 1,
-            "weight": s.get("weight"),
-            "reps": s.get("reps"),
-            "performed": bool(s.get("performed")),
-            "auto_completed": bool(s.get("auto_completed")),
-            "locked": bool(s.get("locked")),
-          }
-          for idx, s in enumerate(ex.get("sets") or [])
-        ],
-      }
-      for ex in (workout_payload.get("exercises") or [])
-    ],
-  }
+def _exercise_id_key(value):
+  if value in (None, ''):
+    return ''
+  if isinstance(value, (list, tuple)):
+    return '|'.join(str(x).strip() for x in value)
+  text = str(value).strip()
+  if text.startswith('[') and text.endswith(']'):
+    inner = text[1:-1]
+    parts = [p.strip().strip("'"") for p in inner.split(',') if p.strip()]
+                             if parts:
+                             return '|'.join(parts)
+                             return ''.join(ch for ch in text if not ch.isspace())
 
 
-def _apply_draft_to_exercises(exercises, draft_payload):
-  if not draft_payload:
-    return False
-  draft_exercises = draft_payload.get("exercises") or []
-  if not draft_exercises:
-    return False
-  draft_by_slot = {str(ex.get("slot_number")): ex for ex in draft_exercises}
-  applied = False
-  for ex in exercises:
-    saved = draft_by_slot.get(str(ex.get("slot_number")))
-    if not saved or ex.get("is_unassigned"):
-      continue
-    if saved.get("exercise_id") and ex.get("exercise_id") and str(saved.get("exercise_id")) != str(ex.get("exercise_id")):
-      continue
-    if saved.get("set_mode"):
-      ex["set_mode"] = _normalize_set_mode(saved.get("set_mode"))
-      ex["set_mode_label"] = SET_MODES[ex["set_mode"]]
-    saved_sets = saved.get("sets") or []
-    for idx, s in enumerate(saved_sets):
-      if idx >= len(ex.get("sets") or []):
-        break
-      ex["sets"][idx]["weight"] = s.get("weight")
-      ex["sets"][idx]["reps"] = s.get("reps")
-      ex["sets"][idx]["performed"] = bool(s.get("performed"))
-      ex["sets"][idx]["auto_completed"] = bool(s.get("auto_completed"))
-      ex["sets"][idx]["locked"] = bool(s.get("locked"))
-    ex["status"] = saved.get("status") or ex.get("status")
-    if saved.get("collapsed") is not None:
-      ex["collapsed"] = saved.get("collapsed")
-    applied = True
-  return applied
+                               def _serialize_draft_payload(workout_payload):
+                               return {
+                                 "current_day": workout_payload.get("current_day"),
+                                 "saved_at": now().isoformat(),
+                                 "exercises": [
+                                   {
+                                     "slot_number": ex.get("slot_number"),
+                                     "exercise_id": ex.get("exercise_id"),
+                                     "status": ex.get("status"),
+                                     "collapsed": ex.get("collapsed"),
+                                     "set_mode": ex.get("set_mode") or "standard",
+                                     "sets": [
+                                       {
+                                         "set_index": s.get("set_index") or idx + 1,
+                                         "weight": s.get("weight"),
+                                         "reps": s.get("reps"),
+                                         "performed": bool(s.get("performed")),
+                                         "auto_completed": bool(s.get("auto_completed")),
+                                         "locked": bool(s.get("locked")),
+                                       }
+                                       for idx, s in enumerate(ex.get("sets") or [])
+                                     ],
+                                   }
+                                   for ex in (workout_payload.get("exercises") or [])
+                                 ],
+                               }
 
 
-def _make_default_sets(target_weight, target_reps, uses_bodyweight, default_sets, set_mode):
-  set_mode = _normalize_set_mode(set_mode)
-  sets = []
-  default_sets = int(default_sets or 0)
-  for idx in range(default_sets):
-    reps = target_reps
-    locked = False
-    if set_mode == "myo_sets" and idx >= 1:
-      reps = 5
-    if set_mode == "myo_rep_match" and idx >= 1:
-      locked = True
-    sets.append({
-      "set_index": idx + 1,
-      "weight": target_weight,
-      "reps": reps,
-      "performed": False,
-      "auto_completed": False,
-      "locked": locked,
-    })
-  return sets
+                                 def _apply_draft_to_exercises(exercises, draft_payload):
+                                 if not draft_payload:
+                                 return False
+                                 draft_exercises = draft_payload.get("exercises") or []
+                                                 if not draft_exercises:
+                                                 return False
+                                                 draft_by_slot = {str(ex.get("slot_number")): ex for ex in draft_exercises}
+                                                 applied = False
+                                                         for ex in exercises:
+                                                         saved = draft_by_slot.get(str(ex.get("slot_number")))
+                                                         if not saved or ex.get("is_unassigned"):
+                                                 continue
+                                                 if saved.get("exercise_id") and ex.get("exercise_id") and _exercise_id_key(saved.get("exercise_id")) != _exercise_id_key(ex.get("exercise_id")):
+                                 continue
+                                 if saved.get("set_mode"):
+                                 ex["set_mode"] = _normalize_set_mode(saved.get("set_mode"))
+                                   ex["set_mode_label"] = SET_MODES[ex["set_mode"]]
+                                 saved_sets = saved.get("sets") or []
+                                            for idx, s in enumerate(saved_sets):
+                                            if idx >= len(ex.get("sets") or []):
+                                            break
+                                            ex["sets"][idx]["weight"] = s.get("weight")
+                                              ex["sets"][idx]["reps"] = s.get("reps")
+                                              ex["sets"][idx]["performed"] = bool(s.get("performed"))
+                                              ex["sets"][idx]["auto_completed"] = bool(s.get("auto_completed"))
+                                              ex["sets"][idx]["locked"] = bool(s.get("locked"))
+                                              ex["status"] = saved.get("status") or ex.get("status")
+                                            if saved.get("collapsed") is not None:
+                                            ex["collapsed"] = saved.get("collapsed")
+                                            applied = True
+                                                    return applied
 
 
-def _serialize_slot(user, slot, day_slots):
-  exercise = safe_get(slot, "exercise", None)
-  display_order_index = day_slots.index(slot)
-  can_move_up = display_order_index > 0
-  can_move_down = display_order_index < len(day_slots) - 1
-  set_mode = _slot_set_mode(slot)
-
-  if exercise is None:
-    return {
-      "slot_number": safe_get(slot, "slot_number", None),
-      "display_order": safe_get(slot, "display_order", None),
-      "exercise_id": None,
-      "exercise_name": "",
-      "exercise_label": "Select exercise",
-      "muscle_group": "Unassigned",
-      "group_size": "Small",
-      "base_target_weight": safe_get(slot, "base_target_weight", None),
-      "base_target_reps": safe_get(slot, "base_target_reps", 12),
-      "default_sets": safe_get(slot, "default_sets", 5),
-      "uses_bodyweight": bool(safe_get(slot, "uses_bodyweight", False)),
-      "recommended_weight": safe_get(slot, "base_target_weight", None),
-      "recommended_reps": safe_get(slot, "base_target_reps", 12),
-      "status": "active",
-      "collapsed": False,
-      "is_unassigned": True,
-      "can_move_up": can_move_up,
-      "can_move_down": can_move_down,
-      "set_mode": set_mode,
-      "set_mode_label": SET_MODES[set_mode],
-      "sets": [],
-      "previous_session": None,
-      "strongest_day": None,
-      "qualifying_progress": None,
-    }
-
-  targets = get_current_targets(
-    user=user,
-    exercise=exercise,
-    default_weight=safe_get(slot, "base_target_weight", None),
-    default_reps=safe_get(slot, "base_target_reps", 12),
-    uses_bodyweight=bool(safe_get(slot, "uses_bodyweight", False)),
-  )
-  state = get_user_exercise_state(user, exercise)
-  previous = get_previous_session_summary(user, exercise)
-  strongest = get_strongest_session_summary(user, exercise)
-  last_sets = list((previous or {}).get("sets") or [])
-  performed_sets = [s for s in last_sets if s.get("performed")]
-  seed_set = (performed_sets or last_sets or [None])[0]
-  if seed_set:
-    seeded_weight = seed_set.get("weight_value", seed_set.get("weight"))
-    seeded_reps = seed_set.get("reps")
-    if seeded_weight is not None or bool(safe_get(slot, "uses_bodyweight", False)):
-      targets["weight"] = seeded_weight if not bool(safe_get(slot, "uses_bodyweight", False)) else 'BW'
-    if seeded_reps not in (None, ""):
-      targets["reps"] = int(seeded_reps)
-  return {
-    "slot_number": safe_get(slot, "slot_number", None),
-    "display_order": safe_get(slot, "display_order", None),
-    "exercise_id": exercise.get_id(),
-    "exercise_name": safe_get(exercise, "name", ""),
-    "exercise_label": safe_get(exercise, "name", ""),
-    "muscle_group": _get_primary_muscle(exercise),
-    "group_size": safe_get(exercise, "group_size", "Small"),
-    "base_target_weight": safe_get(slot, "base_target_weight", None),
-    "base_target_reps": safe_get(slot, "base_target_reps", 12),
-    "default_sets": safe_get(slot, "default_sets", 5),
-    "uses_bodyweight": bool(safe_get(slot, "uses_bodyweight", False)),
-    "recommended_weight": targets["weight"],
-    "recommended_reps": targets["reps"],
-    "status": "active",
-    "collapsed": False,
-    "is_unassigned": False,
-    "can_move_up": can_move_up,
-    "can_move_down": can_move_down,
-    "set_mode": set_mode,
-    "set_mode_label": SET_MODES[set_mode],
-    "sets": _make_default_sets(targets["weight"], targets["reps"], bool(safe_get(slot, "uses_bodyweight", False)), safe_get(slot, "default_sets", 5), set_mode),
-    "previous_session": previous,
-    "strongest_day": strongest,
-    "qualifying_progress": {
-      "current": int(safe_get(state, "qualifying_streak", 0) or 0) if state else 0,
-      "target": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3),
-    },
-  }
+                                                    def _make_default_sets(target_weight, target_reps, uses_bodyweight, default_sets, set_mode):
+                                                    set_mode = _normalize_set_mode(set_mode)
+                                                      sets = []
+                                                           default_sets = int(default_sets or 0)
+                                                           for idx in range(default_sets):
+                                                           reps = target_reps
+                                                           locked = False
+                                                           if set_mode == "myo_sets" and idx >= 1:
+                                                           reps = 5
+                                                           if set_mode == "myo_rep_match" and idx >= 1:
+                                                           locked = True
+                                                           sets.append({
+                                                        "set_index": idx + 1,
+                                                        "weight": target_weight,
+                                                        "reps": reps,
+                                                        "performed": False,
+                                                        "auto_completed": False,
+                                                        "locked": locked,
+                                                      })
+                                                    return sets
 
 
-def build_workout_payload(user, selected_day_code=None):
-  days = get_active_days(user)
-  if not days:
-    return {"day_options": [], "exercises": [], "current_day": None, "next_scheduled_day": None}
+                                                    def _serialize_slot(user, slot, day_slots):
+                                                    exercise = safe_get(slot, "exercise", None)
+                                                             display_order_index = day_slots.index(slot)
+                                                                                 can_move_up = display_order_index > 0
+                                                                                             can_move_down = display_order_index < len(day_slots) - 1
+                                                                                                           set_mode = _slot_set_mode(slot)
 
-  next_day = _get_next_scheduled_day(user)
-  current_day = get_day_by_code(user, selected_day_code) if selected_day_code else next_day or days[0]
-  if current_day is None:
-    current_day = days[0]
+                                                                                                                    if exercise is None:
+                                                                                                                    return {
+                                                                                                                      "slot_number": safe_get(slot, "slot_number", None),
+                                                                                                                      "display_order": safe_get(slot, "display_order", None),
+                                                                                                                      "exercise_id": None,
+                                                                                                                      "exercise_name": "",
+                                                                                                                      "exercise_label": "Select exercise",
+                                                                                                                      "muscle_group": "Unassigned",
+                                                                                                                      "group_size": "Small",
+                                                                                                                      "base_target_weight": safe_get(slot, "base_target_weight", None),
+                                                                                                                      "base_target_reps": safe_get(slot, "base_target_reps", 12),
+                                                                                                                      "default_sets": safe_get(slot, "default_sets", 5),
+                                                                                                                      "uses_bodyweight": bool(safe_get(slot, "uses_bodyweight", False)),
+                                                                                                                      "recommended_weight": safe_get(slot, "base_target_weight", None),
+                                                                                                                      "recommended_reps": safe_get(slot, "base_target_reps", 12),
+                                                                                                                      "status": "active",
+                                                                                                                      "collapsed": False,
+                                                                                                                      "is_unassigned": True,
+                                                                                                                      "can_move_up": can_move_up,
+                                                                                                                      "can_move_down": can_move_down,
+                                                                                                                      "set_mode": set_mode,
+                                                                                                                      "set_mode_label": SET_MODES[set_mode],
+                                                                                                                      "sets": [],
+                                                                                                                      "previous_session": None,
+                                                                                                                      "strongest_day": None,
+                                                                                                                      "qualifying_progress": None,
+                                                                                                                    }
 
-  day_slots = get_slots_for_day(user, current_day)
-  exercises = [_serialize_slot(user, slot, day_slots) for slot in day_slots]
-
-  draft_row = get_workout_draft(user, current_day)
-  resumed = False
-  resumed_at = None
-  if draft_is_fresh(draft_row, 24):
-    resumed = _apply_draft_to_exercises(exercises, safe_get(draft_row, 'draft_payload', {}) or {})
-    if resumed:
-      resumed_at = safe_get(draft_row, 'updated_at', None) or safe_get(draft_row, 'created_at', None)
-
-  return {
-    "resolvedUser": {
-      "display_name": safe_get(user, "display_name", "") or safe_get(user, "email", "user").split("@")[0].title(),
-      "email": safe_get(user, "email", ""),
-    },
-    "current_day": safe_get(current_day, "day_code", None),
-    "next_scheduled_day": safe_get(next_day, "day_code", None) if next_day else safe_get(current_day, "day_code", None),
-    "day_options": _serialize_day_options(days),
-    "can_remove_current_day": len(days) > 1,
-    "exercises": exercises,
-    "progression_settings": {
-      "progress_every_n_qualifying_workouts": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3)
-    },
-    "draft_state": {
-      "has_draft": resumed,
-      "updated_at": resumed_at.isoformat() if resumed_at else "",
-    },
-  }
-
-
-def _get_slot_by_identifiers(user, day_code, slot_number):
-  day = get_day_by_code(user, day_code)
-  if day is None:
-    raise Exception("Workout day not found.")
-  slot = app_tables.workout_slots.get(user=user, workout_day=day, slot_number=slot_number, is_active=True)
-  if slot is None:
-    raise Exception("Workout slot not found.")
-  return day, slot
-
-
-@anvil.server.callable
-def load_workout_day(day_code=None):
-  user = get_current_user()
-  return build_workout_payload(user, day_code)
-
-
-@anvil.server.callable
-def save_workout_draft(day_code, draft_payload):
-  user = get_current_user()
-  day = get_day_by_code(user, day_code)
-  if day is None:
-    raise Exception("Workout day not found.")
-  upsert_workout_draft(user, day, _serialize_draft_payload(draft_payload or {}))
-  draft_row = get_workout_draft(user, day)
-  updated = safe_get(draft_row, "updated_at", None) if draft_row else None
-  return {"ok": True, "updated_at": updated.isoformat() if updated else ""}
+                                                                                                                    targets = get_current_targets(
+                                                                                                                      user=user,
+                                                                                                                      exercise=exercise,
+                                                                                                                      default_weight=safe_get(slot, "base_target_weight", None),
+                                                                                                                      default_reps=safe_get(slot, "base_target_reps", 12),
+                                                                                                                      uses_bodyweight=bool(safe_get(slot, "uses_bodyweight", False)),
+                                                                                                                    )
+                                                                                                                            state = get_user_exercise_state(user, exercise)
+                                                                                                                              previous = get_previous_session_summary(user, exercise)
+                                                                                                                                       strongest = get_strongest_session_summary(user, exercise)
+                                                                                                                              last_sets = list((previous or {}).get("sets") or [])
+                                                                                                                                        performed_sets = [s for s in last_sets if s.get("performed")]
+                                                                                                                                  seed_set = (performed_sets or last_sets or [None])[0]
+                                                                                                                                  if seed_set:
+                                                                                                                                  seeded_weight = seed_set.get("weight_value", seed_set.get("weight"))
+                                                                                                                            seeded_reps = seed_set.get("reps")
+                                                                                                                                        if seeded_weight is not None or bool(safe_get(slot, "uses_bodyweight", False)):
+                                                                                                                                        targets["weight"] = seeded_weight if not bool(safe_get(slot, "uses_bodyweight", False)) else 'BW'
+                                                                                                                            if seeded_reps not in (None, ""):
+                                                                                                                            targets["reps"] = int(seeded_reps)
+                                                                                                                            return {
+                                                                                                                              "slot_number": safe_get(slot, "slot_number", None),
+                                                                                                                              "display_order": safe_get(slot, "display_order", None),
+                                                                                                                              "exercise_id": exercise.get_id(),
+                                                                                                                              "exercise_name": safe_get(exercise, "name", ""),
+                                                                                                                              "exercise_label": safe_get(exercise, "name", ""),
+                                                                                                                              "muscle_group": _get_primary_muscle(exercise),
+                                                                                                                              "group_size": safe_get(exercise, "group_size", "Small"),
+                                                                                                                              "base_target_weight": safe_get(slot, "base_target_weight", None),
+                                                                                                                              "base_target_reps": safe_get(slot, "base_target_reps", 12),
+                                                                                                                              "default_sets": safe_get(slot, "default_sets", 5),
+                                                                                                                              "uses_bodyweight": bool(safe_get(slot, "uses_bodyweight", False)),
+                                                                                                                              "recommended_weight": targets["weight"],
+                                                                                                                              "recommended_reps": targets["reps"],
+                                                                                                                              "status": "active",
+                                                                                                                              "collapsed": False,
+                                                                                                                              "is_unassigned": False,
+                                                                                                                              "can_move_up": can_move_up,
+                                                                                                                              "can_move_down": can_move_down,
+                                                                                                                              "set_mode": set_mode,
+                                                                                                                              "set_mode_label": SET_MODES[set_mode],
+                                                                                                                              "sets": _make_default_sets(targets["weight"], targets["reps"], bool(safe_get(slot, "uses_bodyweight", False)), safe_get(slot, "default_sets", 5), set_mode),
+                                                                                                                              "previous_session": previous,
+                                                                                                                              "strongest_day": strongest,
+                                                                                                                              "qualifying_progress": {
+                                                                                                                                "current": int(safe_get(state, "qualifying_streak", 0) or 0) if state else 0,
+                                                                                                                                "target": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3),
+                                                                                                                              },
+                                                                                                                            }
 
 
-@anvil.server.callable
-def clear_current_workout_changes(day_code):
-  user = get_current_user()
-  day = get_day_by_code(user, day_code)
-  if day is None:
-    raise Exception("Workout day not found.")
-  clear_workout_draft_row(user, day)
-  return build_workout_payload(user, day_code)
+                                                                                                                              def build_workout_payload(user, selected_day_code=None):
+                                                                                                                              days = get_active_days(user)
+                                                                                                                                   if not days:
+                                                                                                                                   return {"day_options": [], "exercises": [], "current_day": None, "next_scheduled_day": None}
+
+                                                                                                                              next_day = _get_next_scheduled_day(user)
+                                                                                                                            current_day = get_day_by_code(user, selected_day_code) if selected_day_code else next_day or days[0]
+                                                                                                                                        if current_day is None:
+                                                                                                                                        current_day = days[0]
+
+                                                                                                                                        day_slots = get_slots_for_day(user, current_day)
+                                                                                                                            exercises = [_serialize_slot(user, slot, day_slots) for slot in day_slots]
+
+                                                                                                                                      draft_row = get_workout_draft(user, current_day)
+                                                                                                                            resumed = False
+                                                                                                                                    resumed_at = None
+                                                                                                                                    if draft_is_fresh(draft_row, 24):
+                                                                                                                    resumed = _apply_draft_to_exercises(exercises, safe_get(draft_row, 'draft_payload', {}) or {})
+                                                                                                                    if resumed:
+                                                                                                                    resumed_at = safe_get(draft_row, 'updated_at', None) or safe_get(draft_row, 'created_at', None)
+
+                                                                                                                    return {
+                                                                                                                      "resolvedUser": {
+                                                                                                                        "display_name": safe_get(user, "display_name", "") or safe_get(user, "email", "user").split("@")[0].title(),
+                                                                                                                        "email": safe_get(user, "email", ""),
+                                                                                                                      },
+                                                                                                                      "current_day": safe_get(current_day, "day_code", None),
+                                                                                                                      "next_scheduled_day": safe_get(next_day, "day_code", None) if next_day else safe_get(current_day, "day_code", None),
+                                                                                                                      "day_options": _serialize_day_options(days),
+                                                                                                                      "can_remove_current_day": len(days) > 1,
+                                                                                                                      "exercises": exercises,
+                                                                                                                      "progression_settings": {
+                                                                                                                        "progress_every_n_qualifying_workouts": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3)
+                                                                                                                      },
+                                                                                                                      "draft_state": {
+                                                                                                                        "has_draft": resumed,
+                                                                                                                        "updated_at": resumed_at.isoformat() if resumed_at else "",
+                                                                                                                      },
+                                                                                                                    }
 
 
-@anvil.server.callable
-def add_exercise_slot(day_code):
-  user = get_current_user()
+                                                                                                                      def _get_slot_by_identifiers(user, day_code, slot_number):
+                                                                                                                      day = get_day_by_code(user, day_code)
+                                                                                                                    if day is None:
+                                                                                                                    raise Exception("Workout day not found.")
+                                                                                                                    slot = app_tables.workout_slots.get(user=user, workout_day=day, slot_number=slot_number, is_active=True)
+                                                                                                             if slot is None:
+                                                                                                             raise Exception("Workout slot not found.")
+                                                                                                             return day, slot
+
+
+                                                                                                             @anvil.server.callable
+                                                                                                             def load_workout_day(day_code=None):
+                                                                                                             user = get_current_user()
+                                                                                                                    return build_workout_payload(user, day_code)
+
+
+                                                                                                                    @anvil.server.callable
+                                                                                                                    def save_workout_draft(day_code, draft_payload):
+                                                                                                                    user = get_current_user()
+                                                                                                                         day = get_day_by_code(user, day_code)
+                                                                                                                             if day is None:
+                                                                                                                             raise Exception("Workout day not found.")
+                                                                                                                             upsert_workout_draft(user, day, _serialize_draft_payload(draft_payload or {}))
+                                                                                                                             draft_row = get_workout_draft(user, day)
+                                                                                                                                       updated = safe_get(draft_row, "updated_at", None) if draft_row else None
+                                                                                                                             return {"ok": True, "updated_at": updated.isoformat() if updated else ""}
+
+
+                                                                                                                    @anvil.server.callable
+                                                                                                                    def clear_current_workout_changes(day_code):
+                                                                                                                    user = get_current_user()
+                                                                                                                         day = get_day_by_code(user, day_code)
+                                                                                                                             if day is None:
+                                                                                                                             raise Exception("Workout day not found.")
+                                                                                                                             clear_workout_draft_row(user, day)
+                                                                                                                             return build_workout_payload(user, day_code)
+
+
+                                                                                                                             @anvil.server.callable
+                                                                                                                             def add_exercise_slot(day_code):
+                                                                                                                             user = get_current_user()
   day = get_day_by_code(user, day_code)
   add_empty_slot(user, day)
   return build_workout_payload(user, day_code)
