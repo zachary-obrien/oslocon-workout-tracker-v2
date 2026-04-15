@@ -951,5 +951,7 @@ container:
       </div>
       type: HtmlTemplate
       is_package: true
+      type: HtmlTemplate
+      is_package: true
   type: HtmlTemplate
 is_package: true
