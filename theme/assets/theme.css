@@ -9,3 +9,62 @@ html, body {
   margin: 0 !important;
   background: transparent !important;
 }
+
+/* Dark modal shell */
+.modal-content {
+  background: #0a1118 !important;
+  border: 1px solid #1f2a39 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28) !important;
+  background-clip: border-box !important;
+}
+
+/* Remove bootstrap white banding */
+.modal-body {
+  padding: 0 !important;
+  background: #0a1118 !important;
+}
+
+/* Keep headers/footers functional for system modals. */
+.modal-header,
+.modal-footer {
+  background: #0a1118 !important;
+  border-color: #1f2a39 !important;
+}
+
+/* Top-level Anvil wrapper inside modal */
+.modal-body > .anvil-container,
+.modal-body > .column-panel,
+.modal-body > .anvil-component {
+  background: #0a1118 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Reduced inner spacing for Anvil-generated gutters */
+.modal-body .col-padding,
+.modal-body .col-padding-medium,
+.modal-body .anvil-panel-section-gutter {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep modal content dark and readable */
+.modal-body .column-panel.anvil-container,
+.modal-body .flow-panel.anvil-container,
+.modal-body .anvil-panel-section-container,
+.modal-body .anvil-panel-section {
+  background: transparent !important;
+  color: #f3f6fb !important;
+}
+
+@media (max-width: 720px) {
+  .modal-body .col-padding,
+  .modal-body .col-padding-medium,
+  .modal-body .anvil-panel-section-gutter {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+}
