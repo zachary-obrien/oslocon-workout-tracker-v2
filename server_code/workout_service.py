@@ -211,15 +211,23 @@ def _apply_draft_to_exercises(exercises, draft_payload):
       ex["set_mode_label"] = SET_MODES[ex["set_mode"]]
 
     saved_sets = saved.get("sets") or []
-    current_sets = ex.get("sets") or []
+    current_sets = list(ex.get("sets") or [])
+    merged_sets = []
     for idx, s in enumerate(saved_sets):
-      if idx >= len(current_sets):
-        break
-      current_sets[idx]["weight"] = s.get("weight")
-      current_sets[idx]["reps"] = s.get("reps")
-      current_sets[idx]["performed"] = bool(s.get("performed"))
-      current_sets[idx]["auto_completed"] = bool(s.get("auto_completed"))
-      current_sets[idx]["locked"] = bool(s.get("locked"))
+      base = current_sets[idx] if idx < len(current_sets) else {}
+      merged_sets.append({
+        **base,
+        "set_index": s.get("set_index") or idx + 1,
+        "weight": s.get("weight"),
+        "reps": s.get("reps"),
+        "performed": bool(s.get("performed")),
+        "auto_completed": bool(s.get("auto_completed")),
+        "locked": bool(s.get("locked")),
+      })
+    if merged_sets:
+      ex["sets"] = merged_sets
+    else:
+      ex["sets"] = current_sets
 
     ex["status"] = saved.get("status") or ex.get("status")
     if saved.get("collapsed") is not None:

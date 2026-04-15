@@ -1,6 +1,6 @@
 import anvil.users
 from anvil.tables import app_tables
-from datetime import datetime
+from datetime import datetime, timezone
 
 from formatting_service import normalize_for_match
 
@@ -19,7 +19,7 @@ USER_DEFAULTS = {
 
 
 def now():
-  return datetime.now()
+  return datetime.now(timezone.utc)
 
 
 def safe_get(row, key, default=None):
@@ -191,14 +191,33 @@ def clear_workout_draft(user, workout_day):
   return True
 
 
+def _normalize_dt(value):
+  if not value:
+    return None
+  try:
+    if isinstance(value, str):
+      text = value.strip()
+      if text.endswith('Z'):
+        text = text[:-1] + '+00:00'
+      return datetime.fromisoformat(text)
+  except Exception:
+    pass
+  return value
+
+
 def draft_is_fresh(draft_row, max_hours=24):
   if not draft_row:
     return False
-  updated = safe_get(draft_row, "updated_at") or safe_get(draft_row, "created_at")
+  updated = _normalize_dt(safe_get(draft_row, "updated_at") or safe_get(draft_row, "created_at"))
   if not updated:
     return False
   try:
-    age = now() - updated
-    return age.total_seconds() <= max_hours * 3600
+    current = now()
+    if getattr(updated, 'tzinfo', None) is None:
+      current = current.replace(tzinfo=None)
+    else:
+      current = current.astimezone(updated.tzinfo)
+    age = current - updated
+    return 0 <= age.total_seconds() <= max_hours * 3600
   except Exception:
     return False
