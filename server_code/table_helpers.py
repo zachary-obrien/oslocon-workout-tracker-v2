@@ -189,3 +189,17 @@ def clear_workout_draft(user, workout_day):
   if row is not None:
     row.delete()
   return True
+
+
+
+def draft_is_fresh(draft_row, max_hours=24):
+  if not draft_row:
+    return False
+  updated = safe_get(draft_row, "updated_at") or safe_get(draft_row, "created_at")
+  if not updated:
+    return False
+  try:
+    age = now() - updated
+    return age.total_seconds() <= max_hours * 3600
+  except Exception:
+    return False

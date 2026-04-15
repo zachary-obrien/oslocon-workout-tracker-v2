@@ -9,10 +9,11 @@ get_day_by_code,
 get_slots_for_day,
 get_recent_sessions,
 get_user_exercise_state,
+now,
 get_workout_draft,
 upsert_workout_draft,
-clear_workout_draft,
-now,
+clear_workout_draft as clear_workout_draft_row,
+draft_is_fresh,
 )
 from progression_service import (
 get_current_targets,
@@ -117,66 +118,58 @@ def _lookup_exercise_reference(exercise_ref):
   return None
 
 
-def _serialize_draft_state(draft_row):
-  if draft_row is None:
-    return {"has_draft": False, "updated_at": None}
+def _serialize_draft_payload(workout_payload):
   return {
-    "has_draft": True,
-    "updated_at": draft_row["updated_at"],
+    'current_day': workout_payload.get('current_day'),
+    'saved_at': now().isoformat(),
+    'exercises': [
+      {
+        'slot_number': ex.get('slot_number'),
+        'exercise_id': ex.get('exercise_id'),
+        'status': ex.get('status'),
+        'collapsed': ex.get('collapsed'),
+        'sets': [
+          {
+            'set_index': s.get('set_index') or idx + 1,
+            'weight': s.get('weight'),
+            'reps': s.get('reps'),
+            'performed': bool(s.get('performed')),
+            'auto_completed': bool(s.get('auto_completed')),
+          }
+          for idx, s in enumerate(ex.get('sets') or [])
+        ],
+      }
+      for ex in (workout_payload.get('exercises') or [])
+    ],
   }
 
 
-def _normalize_set_from_draft(item, fallback_index):
-  return {
-    "set_index": int(item.get("set_index") or fallback_index),
-    "weight": item.get("weight"),
-    "reps": item.get("reps"),
-    "performed": bool(item.get("performed")),
-    "auto_completed": bool(item.get("auto_completed")),
-  }
-
-
-def _apply_draft_to_payload(payload, draft_row):
-  if draft_row is None:
-    payload["draft_state"] = _serialize_draft_state(None)
-    return payload
-
-  draft = draft_row["draft_payload"] or {}
-  saved_exercises = draft.get("exercises") or []
-  saved_by_slot = {str(ex.get("slot_number")): ex for ex in saved_exercises if ex.get("slot_number") is not None}
-
-  for ex in payload.get("exercises", []):
-    saved = saved_by_slot.get(str(ex.get("slot_number")))
-    if not saved or ex.get("is_unassigned"):
+def _apply_draft_to_exercises(exercises, draft_payload):
+  if not draft_payload:
+    return False
+  draft_exercises = draft_payload.get('exercises') or []
+  if not draft_exercises:
+    return False
+  draft_by_slot = {str(ex.get('slot_number')): ex for ex in draft_exercises}
+  applied = False
+  for ex in exercises:
+    saved = draft_by_slot.get(str(ex.get('slot_number')))
+    if not saved or ex.get('is_unassigned'):
       continue
-    saved_exercise_id = saved.get("exercise_id")
-    if saved_exercise_id and ex.get("exercise_id") and str(saved_exercise_id) != str(ex.get("exercise_id")):
+    if saved.get('exercise_id') and ex.get('exercise_id') and str(saved.get('exercise_id')) != str(ex.get('exercise_id')):
       continue
-    if saved.get("recommended_weight") is not None:
-      ex["recommended_weight"] = saved.get("recommended_weight")
-    if saved.get("recommended_reps") is not None:
-      ex["recommended_reps"] = saved.get("recommended_reps")
-    if saved.get("status"):
-      ex["status"] = saved.get("status")
-    if "collapsed" in saved:
-      ex["collapsed"] = saved.get("collapsed")
-    saved_sets = list(saved.get("sets") or [])
-    if saved_sets:
-      merged = []
-      base_sets = list(ex.get("sets") or [])
-      max_len = max(len(base_sets), len(saved_sets))
-      for idx in range(max_len):
-        base = dict(base_sets[idx]) if idx < len(base_sets) else {"set_index": idx + 1}
-        if idx < len(saved_sets):
-          base.update(_normalize_set_from_draft(saved_sets[idx], idx + 1))
-        else:
-          base.setdefault("performed", False)
-          base.setdefault("auto_completed", False)
-        merged.append(base)
-      ex["sets"] = merged
-
-  payload["draft_state"] = _serialize_draft_state(draft_row)
-  return payload
+    saved_sets = saved.get('sets') or []
+    for idx, s in enumerate(saved_sets):
+      if idx >= len(ex.get('sets') or []):
+        break
+      ex['sets'][idx]['weight'] = s.get('weight')
+      ex['sets'][idx]['reps'] = s.get('reps')
+      ex['sets'][idx]['performed'] = bool(s.get('performed'))
+      ex['sets'][idx]['auto_completed'] = bool(s.get('auto_completed'))
+    ex['status'] = saved.get('status') or ex.get('status')
+    ex['collapsed'] = saved.get('collapsed') if saved.get('collapsed') is not None else ex.get('collapsed')
+    applied = True
+  return applied
 
 
 def _serialize_slot(user, slot, day_slots):
@@ -258,7 +251,8 @@ def _serialize_slot(user, slot, day_slots):
     },
   }
 
-def build_workout_payload(user, selected_day_code=None, apply_draft=True):
+
+def build_workout_payload(user, selected_day_code=None):
   days = get_active_days(user)
   if not days:
     return {"day_options": [], "exercises": [], "current_day": None, "next_scheduled_day": None}
@@ -271,7 +265,15 @@ def build_workout_payload(user, selected_day_code=None, apply_draft=True):
   day_slots = get_slots_for_day(user, current_day)
   exercises = [_serialize_slot(user, slot, day_slots) for slot in day_slots]
 
-  payload = {
+  draft_row = get_workout_draft(user, current_day)
+  resumed = False
+  resumed_at = None
+  if draft_is_fresh(draft_row, 24):
+    resumed = _apply_draft_to_exercises(exercises, draft_row["draft_payload"] or {})
+    if resumed:
+      resumed_at = draft_row["updated_at"] or draft_row["created_at"]
+
+  return {
     "resolvedUser": {
       "display_name": user["display_name"] or user["email"].split("@")[0].title(),
       "email": user["email"],
@@ -284,14 +286,9 @@ def build_workout_payload(user, selected_day_code=None, apply_draft=True):
     "progression_settings": {
       "progress_every_n_qualifying_workouts": int(user["progress_every_n_qualifying_workouts"] or 3)
     },
+    "resumed_draft": resumed,
+    "resumed_draft_updated_at": resumed_at.isoformat() if resumed_at else '',
   }
-
-  if apply_draft:
-    draft_row = get_workout_draft(user, current_day)
-    return _apply_draft_to_payload(payload, draft_row)
-
-  payload["draft_state"] = _serialize_draft_state(None)
-  return payload
 
 
 def _get_slot_by_identifiers(user, day_code, slot_number):
@@ -307,6 +304,28 @@ def _get_slot_by_identifiers(user, day_code, slot_number):
 @anvil.server.callable
 def load_workout_day(day_code=None):
   user = get_current_user()
+  return build_workout_payload(user, day_code)
+
+
+@anvil.server.callable
+def save_workout_draft(day_code, draft_payload):
+  user = get_current_user()
+  day = get_day_by_code(user, day_code)
+  if day is None:
+    raise Exception("Workout day not found.")
+  upsert_workout_draft(user, day, draft_payload or {})
+  draft_row = get_workout_draft(user, day)
+  updated = draft_row["updated_at"] if draft_row else None
+  return {"ok": True, "updated_at": updated.isoformat() if updated else ''}
+
+
+@anvil.server.callable
+def clear_workout_draft(day_code):
+  user = get_current_user()
+  day = get_day_by_code(user, day_code)
+  if day is None:
+    raise Exception("Workout day not found.")
+  clear_workout_draft_row(user, day)
   return build_workout_payload(user, day_code)
 
 
@@ -423,28 +442,6 @@ def _build_completion_summary(user, completion_bucket, tile_states, completed_at
     "show_confetti": completion_bucket in ("standard", "exceeded"),
     "bucket": completion_bucket,
   }
-
-
-
-
-@anvil.server.callable
-def save_workout_draft(day_code, draft_payload):
-  user = get_current_user()
-  day = get_day_by_code(user, day_code)
-  if day is None:
-    raise Exception("Workout day not found.")
-  row = upsert_workout_draft(user, day, draft_payload or {})
-  return {"updated_at": row["updated_at"], "has_draft": True}
-
-
-@anvil.server.callable
-def clear_current_workout_changes(day_code):
-  user = get_current_user()
-  day = get_day_by_code(user, day_code)
-  if day is None:
-    raise Exception("Workout day not found.")
-  clear_workout_draft(user, day)
-  return build_workout_payload(user, day_code, apply_draft=False)
 
 
 @anvil.server.callable
@@ -570,7 +567,5 @@ def submit_workout(payload):
   session["completion_bucket"] = completion_bucket
   session["share_text"] = summary["share_text"]
 
-  clear_workout_draft(user, day)
-  clear_workout_draft(user, day)
   next_payload = build_workout_payload(user, None)
   return {"workout": next_payload, "completion_summary": summary, "completed_day_code": day_code}

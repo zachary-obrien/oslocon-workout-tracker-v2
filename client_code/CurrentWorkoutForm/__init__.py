@@ -37,15 +37,6 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
     payload = anvil.server.call('load_workout_day', day_code)
     return self._update_workout(payload)
 
-  def py_save_workout_draft(self, day_code, draft_payload):
-    with anvil.server.no_loading_indicator:
-      return anvil.server.call('save_workout_draft', day_code, draft_payload)
-
-  def py_clear_current_workout_changes(self, day_code):
-    with anvil.server.no_loading_indicator:
-      payload = anvil.server.call('clear_current_workout_changes', day_code)
-    return self._update_workout(payload)
-
   def py_add_exercise_slot(self):
     payload = anvil.server.call('add_exercise_slot', self.current_day)
     return self._update_workout(payload)
@@ -89,6 +80,17 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
       return anvil.server.call('search_exercises_ui', query)
     except Exception:
       return []
+
+  def py_save_workout_draft(self, payload):
+    if not self.current_day:
+      return None
+    return anvil.server.call('save_workout_draft', self.current_day, payload)
+
+  def py_clear_workout_draft(self):
+    if not self.current_day:
+      return None
+    payload = anvil.server.call('clear_workout_draft', self.current_day)
+    return self._update_workout(payload)
 
   def py_submit_workout(self, payload):
     result = anvil.server.call('submit_workout', payload)
