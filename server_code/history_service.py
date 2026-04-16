@@ -275,15 +275,22 @@ def get_exercise_history(exercise_id):
 
 
 def _coerce_reference_datetime(reference_dt):
-  if isinstance(reference_dt, datetime):
-    return reference_dt
-  return now()
+  if not isinstance(reference_dt, datetime):
+    reference_dt = now()
+  if reference_dt.tzinfo is None or reference_dt.utcoffset() is None:
+    return reference_dt.replace(tzinfo=timezone.utc)
+  return reference_dt
 
 
 def _week_bounds(reference_dt):
   reference_dt = _coerce_reference_datetime(reference_dt)
   weekday = reference_dt.weekday()  # Monday = 0
-  start = datetime(reference_dt.year, reference_dt.month, reference_dt.day) - timedelta(days=weekday)
+  start = datetime(
+    reference_dt.year,
+    reference_dt.month,
+    reference_dt.day,
+    tzinfo=reference_dt.tzinfo,
+  ) - timedelta(days=weekday)
   end = start + timedelta(days=7)
   return start, end
 
@@ -296,6 +303,10 @@ def get_weekly_muscle_volume(user, reference_dt=None):
     completed_at = safe_get(session, "completed_at", None)
     if completed_at is None:
       continue
+    if completed_at.tzinfo is None or completed_at.utcoffset() is None:
+      completed_at = completed_at.replace(tzinfo=start.tzinfo or timezone.utc)
+    else:
+      completed_at = completed_at.astimezone(start.tzinfo or timezone.utc)
     if completed_at < start or completed_at >= end:
       continue
     for row in get_session_exercises_for_session(session):

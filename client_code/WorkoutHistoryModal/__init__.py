@@ -84,11 +84,11 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     return "".join(EMOJIS.get(state, "⬜") for state in states)
 
   def _make_card(self):
-    card = ColumnPanel(role="card")
+    card = ColumnPanel(role="history-entry-card")
     card.background = CARD_BG
     card.foreground = TEXT
     try:
-      card.border = f"1px solid {BORDER}"
+      card.border = "1px solid {0}".format(BORDER)
     except Exception:
       pass
     card.spacing_above = "small"
@@ -165,27 +165,36 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
 
   def _render_workout_card(self, card, item):
     day = item.get("day_code") or "—"
-    card.add_component(self._tight_label(f"Day {day}", bold=True))
-
     completed = item.get("completed_at_display") or ""
-    if completed:
-      card.add_component(self._tight_label(completed, fg=MUTED))
-
     tile_text = self._tile_text(item)
-    if tile_text:
-      card.add_component(self._tight_label(tile_text, fg=TEXT))
+  
+    day_lbl = self._tight_label("Day {0}".format(day), bold=True)
+    card.add_component(day_lbl, full_width_row=True)
 
+    if completed:
+      time_lbl = self._tight_label(completed, fg=MUTED)
+      card.add_component(time_lbl, full_width_row=True)
+
+    if tile_text:
+      tiles_lbl = self._tight_label(tile_text, fg=TEXT)
+      card.add_component(tiles_lbl, full_width_row=True)
+  
     actions = FlowPanel(spacing="small")
+    actions.spacing_above = "small"
+    actions.spacing_below = "none"
+  
     share = item.get("share_text") or ""
     copy_btn = Button(text="Copy", role=BTN_ROLE)
     copy_btn.enabled = bool(share)
     copy_btn.set_event_handler("click", lambda text=share, **e: self._copy_text(text))
     actions.add_component(copy_btn)
+  
     if item.get("session_id"):
       delete_btn = Button(text="Delete", role=BTN_ROLE)
       delete_btn.set_event_handler("click", lambda session_id=item.get("session_id"), **e: self._delete_item(session_id))
       actions.add_component(delete_btn)
-    card.add_component(actions)
+  
+    card.add_component(actions, full_width_row=True)
 
   def _render_muscle_history_card(self, card, item):
     title = item.get("exercise_name") or "Exercise"

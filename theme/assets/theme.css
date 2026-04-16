@@ -68,3 +68,27 @@ html, body {
     padding-right: 6px !important;
   }
 }
+
+.anvil-role-history-entry-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0)) !important;
+  border: 1px solid #283548 !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.anvil-role-history-entry-card .col-padding,
+.anvil-role-history-entry-card .col-padding-medium,
+.anvil-role-history-entry-card .anvil-panel-section-gutter {
+  padding-left: 1px !important;
+  padding-right: 1px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.anvil-role-history-entry-card .anvil-panel-section {
+  margin: 0 !important;
+}
+
+.anvil-role-history-entry-card .flow-panel {
+  margin-top: 6px !important;
+}

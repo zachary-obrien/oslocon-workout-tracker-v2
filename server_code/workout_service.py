@@ -143,19 +143,23 @@ def _normalize_exercise_identifier(value):
     return ''
   if isinstance(value, (list, tuple)):
     return '|'.join(str(v).strip() for v in value)
+
   raw = str(value).strip()
   if not raw:
     return ''
+
   if raw.startswith('[') and raw.endswith(']'):
     inner = raw[1:-1].strip()
     parts = [p.strip().strip("'\"") for p in inner.split(',') if p.strip()]
     if parts:
       return '|'.join(parts)
+
   if raw.startswith('(') and raw.endswith(')'):
     inner = raw[1:-1].strip()
     parts = [p.strip().strip("'\"") for p in inner.split(',') if p.strip()]
     if parts:
       return '|'.join(parts)
+
   return raw
 
 def _serialize_draft_payload(workout_payload):
