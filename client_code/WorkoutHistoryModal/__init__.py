@@ -226,22 +226,39 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     card.add_component(actions, full_width_row=True)
 
   def _render_muscle_history_card(self, card, item):
+    def esc(value):
+      return (
+        str(value or "")
+          .replace("&", "&amp;")
+          .replace("<", "&lt;")
+          .replace(">", "&gt;")
+          .replace('"', "&quot;")
+          .replace("'", "&#39;")
+      )
+  
     title = item.get("exercise_name") or "Exercise"
     if item.get("secondary_only"):
       title += " · Secondary muscle"
-    card.add_component(self._tight_label(title, bold=True))
-
+  
+    lines = [
+      f'<div style="margin:0 0 1px 14px;padding:0;font-weight:700;color:{TEXT};line-height:1.0;">{esc(title)}</div>'
+    ]
+  
     sub_bits = []
     if item.get("day_code"):
       sub_bits.append(f"Day {item['day_code']}")
     if item.get("completed_at_display"):
       sub_bits.append(item.get("completed_at_display"))
     if sub_bits:
-      card.add_component(self._tight_label(" • ".join(sub_bits), fg=MUTED))
-
+      lines.append(
+        f'<div style="margin:0 0 1px 14px;padding:0;color:{MUTED};line-height:1.0;">{esc(" • ".join(sub_bits))}</div>'
+      )
+  
     if item.get("set_mode_label"):
-      card.add_component(self._tight_label(item.get("set_mode_label"), fg=MUTED))
-
+      lines.append(
+        f'<div style="margin:0 0 1px 14px;padding:0;color:{MUTED};line-height:1.0;">{esc(item.get("set_mode_label"))}</div>'
+      )
+  
     set_bits = []
     for idx, set_info in enumerate(item.get("sets") or [], start=1):
       if not set_info.get("performed"):
@@ -249,8 +266,20 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       weight = set_info.get("weight") or "—"
       reps = set_info.get("reps") or "—"
       set_bits.append(f"{idx}: {weight} × {reps}")
+  
     if set_bits:
-      card.add_component(self._tight_label(" · ".join(set_bits[:3]), fg=MUTED))
+      lines.append(
+        f'<div style="margin:0;padding:0 0 0 14px;color:{MUTED};line-height:1.0;">{esc(" · ".join(set_bits[:3]))}</div>'
+      )
+  
+    summary = RichText(
+      content="".join(lines),
+      format="restricted_html",
+      spacing_above="none",
+      spacing_below="none",
+    )
+    summary.role = None
+    card.add_component(summary, full_width_row=True)
 
   def _muscle_changed(self, **event_args):
     sender = event_args.get("sender") if isinstance(event_args, dict) else None
