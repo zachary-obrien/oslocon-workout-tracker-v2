@@ -189,7 +189,7 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     
     if tile_text:
       lines.append(
-        f'<div style="margin:0 0 0 14px;padding:0;color:{TEXT};line-height:1.0;">{esc(tile_text)}</div>'
+        f'<div style="margin:0;padding:0 0 0 14px;color:{TEXT};line-height:1.0;">{esc(tile_text)}</div>'
       )
   
     summary = RichText(
@@ -201,30 +201,29 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     summary.role = None
     card.add_component(summary, full_width_row=True)
     
-    actions = FlowPanel(spacing="small")
+    actions = FlowPanel(spacing="tiny")
     actions.spacing_above = "none"
     actions.spacing_below = "none"
-  
+    
+    left_spacer = Spacer(width=6)
+    actions.add_component(left_spacer)
+    
     share = item.get("share_text") or ""
     copy_btn = Button(text="Copy", role=BTN_ROLE)
     copy_btn.enabled = bool(share)
+    copy_btn.spacing_above = "none"
+    copy_btn.spacing_below = "none"
     copy_btn.set_event_handler("click", lambda text=share, **e: self._copy_text(text))
     actions.add_component(copy_btn)
-  
+    
     if item.get("session_id"):
       delete_btn = Button(text="Delete", role=BTN_ROLE)
+      delete_btn.spacing_above = "none"
+      delete_btn.spacing_below = "none"
       delete_btn.set_event_handler("click", lambda session_id=item.get("session_id"), **e: self._delete_item(session_id))
       actions.add_component(delete_btn)
   
-    actions_wrap = ColumnPanel()
-    actions_wrap.spacing_above = "none"
-    actions_wrap.spacing_below = "none"
-    
-    spacer = RichText(content='<div style="padding-left:8px;"></div>', format="restricted_html")
-    actions_wrap.add_component(spacer, full_width_row=True)
-    actions_wrap.add_component(actions, full_width_row=True)
-    
-    card.add_component(actions_wrap, full_width_row=True)
+    card.add_component(actions, full_width_row=True)
 
   def _render_muscle_history_card(self, card, item):
     title = item.get("exercise_name") or "Exercise"

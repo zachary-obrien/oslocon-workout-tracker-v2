@@ -226,14 +226,17 @@ container:
 
           function updateExerciseStatusFromSets(ex){
             if (!ex || ex.is_unassigned) return;
+
             if (ex.status === 'skipped') {
               ex.collapsed = true;
               return;
             }
+
             const sets = Array.isArray(ex.sets) ? ex.sets : [];
             const allPerformed = !!sets.length && sets.every(s => !!s.performed);
+
             ex.status = allPerformed ? 'completed' : 'active';
-            ex.collapsed = allPerformed ? (ex.collapsed !== false) : false;
+            ex.collapsed = allPerformed;
           }
 
           function modeLabel(mode){
