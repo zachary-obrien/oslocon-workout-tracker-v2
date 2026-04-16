@@ -622,7 +622,13 @@ def submit_workout(payload):
     recommended_reps = _coerce_reps(ex.get("recommended_reps"))
     planned_sets = len(ex.get("sets", []))
     set_mode = _normalize_set_mode(ex.get("set_mode") or safe_get(slot, "set_mode", "standard"))
-
+    
+    slot.update(
+      default_sets=planned_sets,
+      set_mode=set_mode,
+      updated_at=now(),
+    )
+    
     sets_payload = []
     for idx, s in enumerate(ex.get("sets", []), start=1):
       planned_weight = _coerce_weight(s.get("weight"), uses_bodyweight)
