@@ -1,9 +1,9 @@
 unique_ids:
   assets:
     512x512OsloconWorkout.png: '1775835646126723964615455.6954'
-    custom_html.html: '1775957039105789368110403.0753'
     standard-page.html: JYQ4XBFA2VLQLJE5JMSSNLTVYVXJ5TKS
     theme.css: IO2B77CU47C67TLPDE7RMJB3UNSLSTJS
+    to_delete_custom_html.html: '1775957039105789368110403.0753'
   forms:
     AccountForm: '177584941221060689461930.422905'
     AutoCompleteWorkoutModal: '1775849447609194494046786.17044'
