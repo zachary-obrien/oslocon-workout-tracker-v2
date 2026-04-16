@@ -944,27 +944,38 @@ container:
             autoPrompted = true; suppressAutoComplete = true; renderApp(); markDirty(); showUnfinishedModal(true);
           }
 
-            async function submitWorkout(){
+          async function submitWorkout(){
             closeModal();
             clearTimeout(draftSaveTimer);
-            persistDraftNow();
+
             const completedDayCode = appState.workout.current_day;
             const payload = { day_code: completedDayCode, exercises: [] };
+
             (appState.workout.exercises || []).forEach(ex => {
-            if(ex.is_unassigned || !ex.exercise_id) return;
-            payload.exercises.push({
-            slot_number: ex.slot_number,
-            exercise_id: ex.exercise_id,
-            uses_bodyweight: ex.uses_bodyweight,
-            recommended_weight: ex.recommended_weight,
-            recommended_reps: ex.recommended_reps,
-            status: ex.status,
-            set_mode: ex.set_mode || 'standard',
-            sets: ex.sets || []
-          });
-          });
+              if(ex.is_unassigned || !ex.exercise_id) return;
+              payload.exercises.push({
+                slot_number: ex.slot_number,
+                exercise_id: ex.exercise_id,
+                uses_bodyweight: ex.uses_bodyweight,
+                recommended_weight: ex.recommended_weight,
+                recommended_reps: ex.recommended_reps,
+                status: ex.status,
+                set_mode: ex.set_mode || 'standard',
+                sets: ex.sets || []
+              });
+            });
+
             const result = await py('py_submit_workout', payload);
-            clearDraftStorage(completedDayCode);
+
+            appState.workout = result.workout;
+            appState.completionSummary = result.completion_summary;
+            lastDraftSavedAt = null;
+            autoPrompted = false;
+            suppressAutoComplete = false;
+
+            renderApp();
+            openCompletionModal();
+
             return result;
           }
 

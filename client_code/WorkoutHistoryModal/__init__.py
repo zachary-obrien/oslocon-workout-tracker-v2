@@ -168,19 +168,41 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     completed = item.get("completed_at_display") or ""
     tile_text = self._tile_text(item)
   
-    day_lbl = self._tight_label("Day {0}".format(day), bold=True)
-    card.add_component(day_lbl, full_width_row=True)
+    def esc(value):
+      return (
+        str(value or "")
+          .replace("&", "&amp;")
+          .replace("<", "&lt;")
+          .replace(">", "&gt;")
+          .replace('"', "&quot;")
+          .replace("'", "&#39;")
+      )
+  
+    lines = [
+      f'<div style="margin:0 0 1px 14px;padding:0;font-weight:700;color:{TEXT};line-height:1.0;">Day {esc(day)}</div>'
+    ]
 
     if completed:
-      time_lbl = self._tight_label(completed, fg=MUTED)
-      card.add_component(time_lbl, full_width_row=True)
-
+      lines.append(
+        f'<div style="margin:0 0 1px 14px;padding:0;color:{MUTED};line-height:1.0;">{esc(completed)}</div>'
+      )
+    
     if tile_text:
-      tiles_lbl = self._tight_label(tile_text, fg=TEXT)
-      card.add_component(tiles_lbl, full_width_row=True)
+      lines.append(
+        f'<div style="margin:0 0 0 14px;padding:0;color:{TEXT};line-height:1.0;">{esc(tile_text)}</div>'
+      )
   
+    summary = RichText(
+      content="".join(lines),
+      format="restricted_html",
+      spacing_above="none",
+      spacing_below="none",
+    )
+    summary.role = None
+    card.add_component(summary, full_width_row=True)
+    
     actions = FlowPanel(spacing="small")
-    actions.spacing_above = "small"
+    actions.spacing_above = "none"
     actions.spacing_below = "none"
   
     share = item.get("share_text") or ""
@@ -194,7 +216,15 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       delete_btn.set_event_handler("click", lambda session_id=item.get("session_id"), **e: self._delete_item(session_id))
       actions.add_component(delete_btn)
   
-    card.add_component(actions, full_width_row=True)
+    actions_wrap = ColumnPanel()
+    actions_wrap.spacing_above = "none"
+    actions_wrap.spacing_below = "none"
+    
+    spacer = RichText(content='<div style="padding-left:8px;"></div>', format="restricted_html")
+    actions_wrap.add_component(spacer, full_width_row=True)
+    actions_wrap.add_component(actions, full_width_row=True)
+    
+    card.add_component(actions_wrap, full_width_row=True)
 
   def _render_muscle_history_card(self, card, item):
     title = item.get("exercise_name") or "Exercise"
