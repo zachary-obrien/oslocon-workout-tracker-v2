@@ -96,6 +96,18 @@ class CurrentWorkoutForm(CurrentWorkoutFormTemplate):
     alert(content=modal, large=True, buttons=[])
     return True
 
+
+  def py_save_workout_draft(self, payload):
+    if not self.current_day:
+      return None
+    return anvil.server.call('save_workout_draft', self.current_day, payload)
+
+  def py_clear_current_workout_changes(self):
+    if not self.current_day:
+      return None
+    payload = anvil.server.call('clear_current_workout_changes', self.current_day)
+    return self._update_workout(payload)
+
   def py_submit_workout(self, payload):
     result = anvil.server.call('submit_workout', payload)
     workout = (result or {}).get('workout') or {}

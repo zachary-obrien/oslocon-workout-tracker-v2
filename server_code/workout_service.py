@@ -11,6 +11,10 @@ get_recent_sessions,
 get_user_exercise_state,
 safe_get,
 now,
+get_workout_draft,
+upsert_workout_draft,
+clear_workout_draft as clear_workout_draft_row,
+draft_is_fresh,
 )
 from progression_service import (
 get_current_targets,
@@ -131,6 +135,110 @@ def _lookup_exercise_reference(exercise_ref):
       return row
 
   return None
+
+
+
+def _normalize_exercise_identifier(value):
+  if value in (None, ''):
+    return ''
+  if isinstance(value, (list, tuple)):
+    return '|'.join(str(v).strip() for v in value)
+
+  raw = str(value).strip()
+  if not raw:
+    return ''
+
+  if raw.startswith('[') and raw.endswith(']'):
+    inner = raw[1:-1].strip()
+    parts = [p.strip().strip("'\"") for p in inner.split(',') if p.strip()]
+    if parts:
+      return '|'.join(parts)
+
+  if raw.startswith('(') and raw.endswith(')'):
+    inner = raw[1:-1].strip()
+    parts = [p.strip().strip("'\"") for p in inner.split(',') if p.strip()]
+    if parts:
+      return '|'.join(parts)
+
+  return raw
+
+def _serialize_draft_payload(workout_payload):
+  return {
+    "current_day": workout_payload.get("current_day"),
+    "saved_at": now().isoformat(),
+    "exercises": [
+      {
+        "slot_number": ex.get("slot_number"),
+        "exercise_id": ex.get("exercise_id"),
+        "status": ex.get("status"),
+        "collapsed": ex.get("collapsed"),
+        "set_mode": ex.get("set_mode") or "standard",
+        "sets": [
+          {
+            "set_index": s.get("set_index") or idx + 1,
+            "weight": s.get("weight"),
+            "reps": s.get("reps"),
+            "performed": bool(s.get("performed")),
+            "auto_completed": bool(s.get("auto_completed")),
+            "locked": bool(s.get("locked")),
+          }
+          for idx, s in enumerate(ex.get("sets") or [])
+        ],
+      }
+      for ex in (workout_payload.get("exercises") or [])
+    ],
+  }
+
+
+def _apply_draft_to_exercises(exercises, draft_payload):
+  if not draft_payload:
+    return False
+  draft_exercises = draft_payload.get("exercises") or []
+  if not draft_exercises:
+    return False
+
+  draft_by_slot = {str(ex.get("slot_number")): ex for ex in draft_exercises}
+  applied = False
+
+  for ex in exercises:
+    saved = draft_by_slot.get(str(ex.get("slot_number")))
+    if not saved or ex.get("is_unassigned"):
+      continue
+
+    saved_id = _normalize_exercise_identifier(saved.get("exercise_id"))
+    current_id = _normalize_exercise_identifier(ex.get("exercise_id"))
+    if saved_id and current_id and saved_id != current_id:
+      continue
+
+    if saved.get("set_mode"):
+      ex["set_mode"] = _normalize_set_mode(saved.get("set_mode"))
+      ex["set_mode_label"] = SET_MODES[ex["set_mode"]]
+
+    saved_sets = saved.get("sets") or []
+    current_sets = list(ex.get("sets") or [])
+    merged_sets = []
+    for idx, s in enumerate(saved_sets):
+      base = current_sets[idx] if idx < len(current_sets) else {}
+      merged_sets.append({
+        **base,
+        "set_index": s.get("set_index") or idx + 1,
+        "weight": s.get("weight"),
+        "reps": s.get("reps"),
+        "performed": bool(s.get("performed")),
+        "auto_completed": bool(s.get("auto_completed")),
+        "locked": bool(s.get("locked")),
+      })
+    if merged_sets:
+      ex["sets"] = merged_sets
+    else:
+      ex["sets"] = current_sets
+
+    ex["status"] = saved.get("status") or ex.get("status")
+    if saved.get("collapsed") is not None:
+      ex["collapsed"] = saved.get("collapsed")
+    applied = True
+
+  return applied
 
 
 def _make_default_sets(target_weight, target_reps, uses_bodyweight, default_sets, set_mode):
@@ -254,6 +362,14 @@ def build_workout_payload(user, selected_day_code=None):
   day_slots = get_slots_for_day(user, current_day)
   exercises = [_serialize_slot(user, slot, day_slots) for slot in day_slots]
 
+  draft_row = get_workout_draft(user, current_day)
+  resumed = False
+  resumed_at = None
+  if draft_is_fresh(draft_row, 24):
+    resumed = _apply_draft_to_exercises(exercises, safe_get(draft_row, 'draft_payload', {}) or {})
+    if resumed:
+      resumed_at = safe_get(draft_row, 'updated_at', None) or safe_get(draft_row, 'created_at', None)
+
   return {
     "resolvedUser": {
       "display_name": safe_get(user, "display_name", "") or safe_get(user, "email", "user").split("@")[0].title(),
@@ -266,6 +382,10 @@ def build_workout_payload(user, selected_day_code=None):
     "exercises": exercises,
     "progression_settings": {
       "progress_every_n_qualifying_workouts": int(safe_get(user, "progress_every_n_qualifying_workouts", 3) or 3)
+    },
+    "draft_state": {
+      "has_draft": resumed,
+      "updated_at": resumed_at.isoformat() if resumed_at else "",
     },
   }
 
@@ -283,6 +403,28 @@ def _get_slot_by_identifiers(user, day_code, slot_number):
 @anvil.server.callable
 def load_workout_day(day_code=None):
   user = get_current_user()
+  return build_workout_payload(user, day_code)
+
+
+@anvil.server.callable
+def save_workout_draft(day_code, draft_payload):
+  user = get_current_user()
+  day = get_day_by_code(user, day_code)
+  if day is None:
+    raise Exception("Workout day not found.")
+  upsert_workout_draft(user, day, _serialize_draft_payload(draft_payload or {}))
+  draft_row = get_workout_draft(user, day)
+  updated = safe_get(draft_row, "updated_at", None) if draft_row else None
+  return {"ok": True, "updated_at": updated.isoformat() if updated else ""}
+
+
+@anvil.server.callable
+def clear_current_workout_changes(day_code):
+  user = get_current_user()
+  day = get_day_by_code(user, day_code)
+  if day is None:
+    raise Exception("Workout day not found.")
+  clear_workout_draft_row(user, day)
   return build_workout_payload(user, day_code)
 
 
@@ -570,5 +712,6 @@ def submit_workout(payload):
   session["completion_bucket"] = completion_bucket
   session["share_text"] = summary["share_text"]
 
+  clear_workout_draft_row(user, day)
   next_payload = build_workout_payload(user, None)
   return {"workout": next_payload, "completion_summary": summary, "completed_day_code": day_code}

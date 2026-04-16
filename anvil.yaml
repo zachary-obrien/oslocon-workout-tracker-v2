@@ -352,6 +352,33 @@ db_schema:
       type: datetime
     server: full
     title: workout_days
+  workout_drafts:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      client_hidden: false
+      name: person
+      target: users
+      type: link_single
+    - admin_ui: {order: 1, width: 200}
+      client_hidden: false
+      name: workout_day
+      target: workout_days
+      type: link_single
+    - admin_ui: {order: 2, width: 200}
+      client_hidden: false
+      name: draft_payload
+      type: simpleObject
+    - admin_ui: {order: 3, width: 200}
+      client_hidden: false
+      name: updated_at
+      type: datetime
+    - admin_ui: {order: 4, width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    server: full
+    title: workout_drafts
   workout_session_exercises:
     client: none
     columns:

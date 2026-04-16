@@ -275,15 +275,22 @@ def get_exercise_history(exercise_id):
 
 
 def _coerce_reference_datetime(reference_dt):
-  if isinstance(reference_dt, datetime):
-    return reference_dt
-  return now()
+  if not isinstance(reference_dt, datetime):
+    reference_dt = now()
+  if reference_dt.tzinfo is None or reference_dt.utcoffset() is None:
+    return reference_dt.replace(tzinfo=timezone.utc)
+  return reference_dt
 
 
 def _week_bounds(reference_dt):
   reference_dt = _coerce_reference_datetime(reference_dt)
   weekday = reference_dt.weekday()  # Monday = 0
-  start = datetime(reference_dt.year, reference_dt.month, reference_dt.day) - timedelta(days=weekday)
+  start = datetime(
+    reference_dt.year,
+    reference_dt.month,
+    reference_dt.day,
+    tzinfo=reference_dt.tzinfo,
+  ) - timedelta(days=weekday)
   end = start + timedelta(days=7)
   return start, end
 
@@ -291,33 +298,54 @@ def _week_bounds(reference_dt):
 def get_weekly_muscle_volume(user, reference_dt=None):
   start, end = _week_bounds(reference_dt or now())
   totals = {}
+  labels = {}
   sessions = get_all_sessions(user)
+
+  def canonical_muscle_name(value):
+    raw = str(value or "").strip()
+    if not raw:
+      return "", ""
+    normalized = normalize_for_match(raw).replace("_", " ")
+    display = " ".join(word.capitalize() for word in normalized.split())
+    return normalized, display
+
   for session in sessions:
     completed_at = safe_get(session, "completed_at", None)
     if completed_at is None:
       continue
+    if completed_at.tzinfo is None or completed_at.utcoffset() is None:
+      completed_at = completed_at.replace(tzinfo=start.tzinfo or timezone.utc)
+    else:
+      completed_at = completed_at.astimezone(start.tzinfo or timezone.utc)
     if completed_at < start or completed_at >= end:
       continue
+
     for row in get_session_exercises_for_session(session):
       performed_sets = [s for s in get_sets_for_session_exercise(row) if safe_get(s, "performed", False)]
       if not performed_sets:
         continue
+
       set_count = len(performed_sets)
+
       for muscle in _row_primary_muscles(row):
-        key = str(muscle or "").strip()
+        key, display = canonical_muscle_name(muscle)
         if not key:
           continue
         totals[key] = totals.get(key, 0.0) + float(set_count)
+        labels[key] = display
+
       for muscle in _row_secondary_muscles(row):
-        key = str(muscle or "").strip()
+        key, display = canonical_muscle_name(muscle)
         if not key:
           continue
         totals[key] = totals.get(key, 0.0) + float(set_count) * 0.5
-  ordered = sorted(totals.items(), key=lambda item: (-item[1], normalize_for_match(item[0])))
+        labels[key] = display
+
+  ordered = sorted(totals.items(), key=lambda item: (-item[1], item[0]))
   return {
     "week_start": start,
     "week_end": end,
-    "muscles": [{"name": name, "weighted_sets": round(value, 1)} for name, value in ordered],
+    "muscles": [{"name": labels.get(name, name), "weighted_sets": round(value, 1)} for name, value in ordered],
   }
 
 

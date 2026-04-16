@@ -5,7 +5,7 @@ import anvil.js
 
 EMOJIS = {"green": "🟩", "orange": "🟧", "red": "🟥", "gray": "⬜"}
 APP_BG = "#0a1118"
-CARD_BG = "#141c26"
+CARD_BG = "#1a2430"  # closer to set-row tone
 BORDER = "#283548"
 TEXT = "#f3f6fb"
 MUTED = "#97a5b7"
@@ -83,6 +83,24 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     states = item.get("tile_states") or []
     return "".join(EMOJIS.get(state, "⬜") for state in states)
 
+  def _make_card(self):
+    card = ColumnPanel(role="history-entry-card")
+    card.background = CARD_BG
+    card.foreground = TEXT
+    try:
+      card.border = "1px solid {0}".format(BORDER)
+    except Exception:
+      pass
+    card.spacing_above = "small"
+    card.spacing_below = "none"
+    return card
+
+  def _tight_label(self, text, *, bold=False, fg=None, size=None):
+    lbl = Label(text=text, bold=bold, foreground=fg or TEXT, spacing_above="none", spacing_below="none")
+    if size is not None:
+      lbl.font_size = size
+    return lbl
+
   def _build_ui(self):
     try:
       self.clear()
@@ -94,16 +112,18 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
     root = ColumnPanel()
     root.background = APP_BG
     root.foreground = TEXT
+    root.spacing_above = "none"
+    root.spacing_below = "none"
     self.add_component(root)
 
     head = FlowPanel(align="justify", spacing="small")
     title = self.exercise_name or "Workout history"
-    head.add_component(Label(text=title, bold=True, font_size=18, foreground=TEXT, spacing_above="none", spacing_below="none"))
+    head.add_component(self._tight_label(title, bold=True, size=18))
     close = Button(text="✕", role=BTN_ROLE)
     close.set_event_handler("click", self._close)
     head.add_component(close)
     root.add_component(head)
-    root.add_component(Label(text="Filter by workout, day, or muscle.", foreground=MUTED, spacing_above="none", spacing_below="small"))
+    root.add_component(self._tight_label("Filter by workout, day, or muscle.", fg=MUTED))
 
     controls = FlowPanel(spacing="small")
     if self.context_exercise_id:
@@ -128,23 +148,15 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       dd.foreground = TEXT
       dd.set_event_handler("change", self._muscle_changed)
       root.add_component(dd)
-      root.add_component(Label(text=f"Exercise history for {self.selected_muscle}" if self.selected_muscle else "Choose a muscle group to see exercise history.", foreground=MUTED, spacing_above="small", spacing_below="small"))
+      root.add_component(self._tight_label(f"Exercise history for {self.selected_muscle}" if self.selected_muscle else "Choose a muscle group to see exercise history.", fg=MUTED))
 
     items = self.muscle_history_items if self.active_filter == "muscle_group" and self.selected_muscle else self._filtered_items()
     if not items:
-      root.add_component(Label(text="No history yet.", foreground=MUTED, spacing_above="small", spacing_below="none"))
+      root.add_component(self._tight_label("No history yet.", fg=MUTED))
       return
 
     for item in items:
-      card = ColumnPanel()
-      card.background = APP_BG
-      card.foreground = TEXT
-      try:
-        card.border = f"1px solid {BORDER}"
-      except Exception:
-        pass
-      card.spacing_above = "small"
-      card.spacing_below = "none"
+      card = self._make_card()
       if self.active_filter == "muscle_group" and self.selected_muscle:
         self._render_muscle_history_card(card, item)
       else:
@@ -153,37 +165,100 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
 
   def _render_workout_card(self, card, item):
     day = item.get("day_code") or "—"
-    card.add_component(Label(text=f"Day {day}", bold=True, foreground=TEXT, spacing_above="none", spacing_below="none"))
-    card.add_component(Label(text=item.get("completed_at_display") or "", foreground=MUTED, spacing_above="none", spacing_below="none"))
+    completed = item.get("completed_at_display") or ""
     tile_text = self._tile_text(item)
+  
+    def esc(value):
+      return (
+        str(value or "")
+          .replace("&", "&amp;")
+          .replace("<", "&lt;")
+          .replace(">", "&gt;")
+          .replace('"', "&quot;")
+          .replace("'", "&#39;")
+      )
+  
+    lines = [
+      f'<div style="margin:0 0 1px 14px;padding:0;font-weight:700;color:{TEXT};line-height:1.0;">Day {esc(day)}</div>'
+    ]
+
+    if completed:
+      lines.append(
+        f'<div style="margin:0 0 1px 14px;padding:0;color:{MUTED};line-height:1.0;">{esc(completed)}</div>'
+      )
+    
     if tile_text:
-      card.add_component(Label(text=tile_text, spacing_above="none", spacing_below="none"))
-    button_row = FlowPanel(spacing="small")
+      lines.append(
+        f'<div style="margin:0;padding:0 0 0 14px;color:{TEXT};line-height:1.0;">{esc(tile_text)}</div>'
+      )
+  
+    summary = RichText(
+      content="".join(lines),
+      format="restricted_html",
+      spacing_above="none",
+      spacing_below="none",
+    )
+    summary.role = None
+    card.add_component(summary, full_width_row=True)
+    
+    actions = FlowPanel(spacing="tiny")
+    actions.spacing_above = "none"
+    actions.spacing_below = "none"
+    
+    left_spacer = Spacer(width=6)
+    actions.add_component(left_spacer)
+    
     share = item.get("share_text") or ""
     copy_btn = Button(text="Copy", role=BTN_ROLE)
     copy_btn.enabled = bool(share)
+    copy_btn.spacing_above = "none"
+    copy_btn.spacing_below = "none"
     copy_btn.set_event_handler("click", lambda text=share, **e: self._copy_text(text))
-    button_row.add_component(copy_btn)
+    actions.add_component(copy_btn)
+    
     if item.get("session_id"):
       delete_btn = Button(text="Delete", role=BTN_ROLE)
+      delete_btn.spacing_above = "none"
+      delete_btn.spacing_below = "none"
       delete_btn.set_event_handler("click", lambda session_id=item.get("session_id"), **e: self._delete_item(session_id))
-      button_row.add_component(delete_btn)
-    card.add_component(button_row)
+      actions.add_component(delete_btn)
+  
+    card.add_component(actions, full_width_row=True)
 
   def _render_muscle_history_card(self, card, item):
+    def esc(value):
+      return (
+        str(value or "")
+          .replace("&", "&amp;")
+          .replace("<", "&lt;")
+          .replace(">", "&gt;")
+          .replace('"', "&quot;")
+          .replace("'", "&#39;")
+      )
+  
     title = item.get("exercise_name") or "Exercise"
     if item.get("secondary_only"):
       title += " · Secondary muscle"
-    card.add_component(Label(text=title, bold=True, foreground=TEXT, spacing_above="none", spacing_below="none"))
+  
+    lines = [
+      f'<div style="margin:0 0 1px 14px;padding:0;font-weight:700;color:{TEXT};line-height:1.0;">{esc(title)}</div>'
+    ]
+  
     sub_bits = []
     if item.get("day_code"):
       sub_bits.append(f"Day {item['day_code']}")
     if item.get("completed_at_display"):
       sub_bits.append(item.get("completed_at_display"))
     if sub_bits:
-      card.add_component(Label(text=" • ".join(sub_bits), foreground=MUTED, spacing_above="none", spacing_below="none"))
+      lines.append(
+        f'<div style="margin:0 0 1px 14px;padding:0;color:{MUTED};line-height:1.0;">{esc(" • ".join(sub_bits))}</div>'
+      )
+  
     if item.get("set_mode_label"):
-      card.add_component(Label(text=item.get("set_mode_label"), foreground=MUTED, spacing_above="none", spacing_below="none"))
+      lines.append(
+        f'<div style="margin:0 0 1px 14px;padding:0;color:{MUTED};line-height:1.0;">{esc(item.get("set_mode_label"))}</div>'
+      )
+  
     set_bits = []
     for idx, set_info in enumerate(item.get("sets") or [], start=1):
       if not set_info.get("performed"):
@@ -191,8 +266,20 @@ class WorkoutHistoryModal(WorkoutHistoryModalTemplate):
       weight = set_info.get("weight") or "—"
       reps = set_info.get("reps") or "—"
       set_bits.append(f"{idx}: {weight} × {reps}")
+  
     if set_bits:
-      card.add_component(Label(text="  |  ".join(set_bits[:4]), foreground=MUTED, spacing_above="none", spacing_below="none"))
+      lines.append(
+        f'<div style="margin:0;padding:0 0 0 14px;color:{MUTED};line-height:1.0;">{esc(" · ".join(set_bits[:3]))}</div>'
+      )
+  
+    summary = RichText(
+      content="".join(lines),
+      format="restricted_html",
+      spacing_above="none",
+      spacing_below="none",
+    )
+    summary.role = None
+    card.add_component(summary, full_width_row=True)
 
   def _muscle_changed(self, **event_args):
     sender = event_args.get("sender") if isinstance(event_args, dict) else None
